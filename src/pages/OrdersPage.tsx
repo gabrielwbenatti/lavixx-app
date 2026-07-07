@@ -35,7 +35,7 @@ export function OrdersPage() {
 
   const ordersQuery = useQuery({
     queryKey: ['service-orders', statusFilter || 'all'],
-    queryFn: () => listServiceOrders(statusFilter || undefined),
+    queryFn: () => listServiceOrders(statusFilter ? { status: statusFilter } : undefined),
   })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })

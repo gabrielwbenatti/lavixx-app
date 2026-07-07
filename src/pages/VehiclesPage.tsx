@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -178,7 +179,12 @@ export function VehiclesPage() {
                   className="border-b border-slate-100 last:border-0 dark:border-slate-800"
                 >
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
-                    {describeVehicle(vehicle)}
+                    <Link
+                      to={`/veiculos/${vehicle.id}`}
+                      className="hover:text-indigo-600 hover:underline"
+                    >
+                      {describeVehicle(vehicle)}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {VEHICLE_TYPE_LABELS[vehicle.type]}

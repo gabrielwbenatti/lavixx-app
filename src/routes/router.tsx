@@ -4,8 +4,10 @@ import { RegisterPage } from '@/pages/RegisterPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { HomePage } from '@/pages/HomePage'
 import { CustomersPage } from '@/pages/CustomersPage'
+import { CustomerDetailPage } from '@/pages/CustomerDetailPage'
 import { ServicesPage } from '@/pages/ServicesPage'
 import { VehiclesPage } from '@/pages/VehiclesPage'
+import { VehicleDetailPage } from '@/pages/VehicleDetailPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { AtendimentoPage } from '@/pages/AtendimentoPage'
@@ -31,7 +33,9 @@ export const router = createBrowserRouter([
           { path: '/painel', element: <PainelPage /> },
           { path: '/relatorios', element: <RelatoriosPage /> },
           { path: '/clientes', element: <CustomersPage /> },
+          { path: '/clientes/:id', element: <CustomerDetailPage /> },
           { path: '/veiculos', element: <VehiclesPage /> },
+          { path: '/veiculos/:id', element: <VehicleDetailPage /> },
           { path: '/servicos', element: <ServicesPage /> },
           { path: '/formas-pagamento', element: <PaymentMethodsPage /> },
           { path: '/ordens', element: <OrdersPage /> },

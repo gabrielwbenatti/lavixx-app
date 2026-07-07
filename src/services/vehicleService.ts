@@ -6,6 +6,11 @@ export async function listVehicles(): Promise<VehicleResponse[]> {
   return data
 }
 
+export async function getVehicle(id: string): Promise<VehicleResponse> {
+  const { data } = await api.get<VehicleResponse>(`/vehicles/${id}`)
+  return data
+}
+
 export async function createVehicle(payload: VehicleRequest): Promise<VehicleResponse> {
   const { data } = await api.post<VehicleResponse>('/vehicles', payload)
   return data

@@ -6,6 +6,11 @@ export async function listCustomers(): Promise<CustomerResponse[]> {
   return data
 }
 
+export async function getCustomer(id: string): Promise<CustomerResponse> {
+  const { data } = await api.get<CustomerResponse>(`/customers/${id}`)
+  return data
+}
+
 export async function createCustomer(payload: CustomerRequest): Promise<CustomerResponse> {
   const { data } = await api.post<CustomerResponse>('/customers', payload)
   return data

@@ -9,9 +9,13 @@ import type {
 } from '@/types/serviceOrder'
 import type { PaymentRequest } from '@/types/payment'
 
-export async function listServiceOrders(status?: ServiceStatus): Promise<ServiceOrderResponse[]> {
+export async function listServiceOrders(filters?: {
+  status?: ServiceStatus
+  customerId?: string
+  vehicleId?: string
+}): Promise<ServiceOrderResponse[]> {
   const { data } = await api.get<ServiceOrderResponse[]>('/service-orders', {
-    params: status ? { status } : undefined,
+    params: filters ?? undefined,
   })
   return data
 }
