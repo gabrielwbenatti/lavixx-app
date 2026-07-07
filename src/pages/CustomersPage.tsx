@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { getApiErrorMessage } from '@/lib/api'
-import { formatDocument } from '@/lib/format'
+import { formatDocument, formatPhone } from '@/lib/format'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
 import {
   createCustomer,
@@ -43,7 +43,11 @@ export function CustomersPage() {
 
   const saveMutation = useMutation({
     mutationFn: (form: CustomerForm) => {
-      const payload = { name: form.name, document: form.document || undefined }
+      const payload = {
+        name: form.name,
+        document: form.document || undefined,
+        phone: form.phone || undefined,
+      }
       return editing ? updateCustomer(editing.id, payload) : createCustomer(payload)
     },
     onSuccess: () => {
@@ -62,14 +66,18 @@ export function CustomersPage() {
   const openCreate = () => {
     setEditing(null)
     setFormError(null)
-    reset({ name: '', document: '' })
+    reset({ name: '', document: '', phone: '' })
     setDialogOpen(true)
   }
 
   const openEdit = (customer: CustomerResponse) => {
     setEditing(customer)
     setFormError(null)
-    reset({ name: customer.name, document: customer.document ?? '' })
+    reset({
+      name: customer.name,
+      document: customer.document ?? '',
+      phone: customer.phone ?? '',
+    })
     setDialogOpen(true)
   }
 
@@ -111,6 +119,7 @@ export function CustomersPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3 font-medium">Nome</th>
+                <th className="px-4 py-3 font-medium">Telefone</th>
                 <th className="px-4 py-3 font-medium">CPF/CNPJ</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -123,6 +132,9 @@ export function CustomersPage() {
                 >
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                     {customer.name}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                    {formatPhone(customer.phone)}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {formatDocument(customer.document)}
@@ -168,6 +180,20 @@ export function CustomersPage() {
         >
           <Field label="Nome" htmlFor="name" error={errors.name?.message}>
             <Input id="name" placeholder="Nome do cliente" invalid={!!errors.name} {...register('name')} />
+          </Field>
+          <Field
+            label="Telefone / celular (opcional)"
+            htmlFor="phone"
+            error={errors.phone?.message}
+            hint="Com DDD. Ex.: 11912345678"
+          >
+            <Input
+              id="phone"
+              inputMode="tel"
+              placeholder="(11) 91234-5678"
+              invalid={!!errors.phone}
+              {...register('phone')}
+            />
           </Field>
           <Field
             label="CPF/CNPJ (opcional)"

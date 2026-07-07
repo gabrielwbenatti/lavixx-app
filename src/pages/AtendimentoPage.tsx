@@ -317,6 +317,7 @@ function RegisterStep({
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
   const [newName, setNewName] = useState('')
   const [newDoc, setNewDoc] = useState('')
+  const [newPhone, setNewPhone] = useState('')
 
   const [type, setType] = useState<VehicleType>('car')
   const [plate, setPlate] = useState(initialPlate)
@@ -347,6 +348,7 @@ function RegisterStep({
         const created = await createCustomer({
           name: newName.trim(),
           document: newDoc.replace(/\D/g, '') || undefined,
+          phone: newPhone.replace(/\D/g, '') || undefined,
         })
         customerId = created.id
         name = created.name
@@ -452,9 +454,18 @@ function RegisterStep({
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Nome do cliente" htmlFor="newName">
               <Input id="newName" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            </Field>
+            <Field label="Telefone (opcional)" htmlFor="newPhone">
+              <Input
+                id="newPhone"
+                inputMode="tel"
+                placeholder="(11) 91234-5678"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+              />
             </Field>
             <Field label="CPF/CNPJ (opcional)" htmlFor="newDoc">
               <Input

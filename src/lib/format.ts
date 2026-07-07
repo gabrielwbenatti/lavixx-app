@@ -24,6 +24,22 @@ export function formatDocument(doc: string | null | undefined): string {
 }
 
 /**
+ * Formata telefone (armazenado só com dígitos) para exibição.
+ * 11 dígitos → (XX) XXXXX-XXXX (celular); 10 → (XX) XXXX-XXXX (fixo).
+ */
+export function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return '—'
+  const d = phone.replace(/\D/g, '')
+  if (d.length === 11) {
+    return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+  }
+  if (d.length === 10) {
+    return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+  }
+  return phone
+}
+
+/**
  * Formata a placa (armazenada limpa, sem separadores) para exibição.
  * Formato antigo (3 letras + 4 números) recebe hífen: ABC-1234.
  * Formato Mercosul (ABC1D23) e demais são exibidos como estão, em maiúsculas.

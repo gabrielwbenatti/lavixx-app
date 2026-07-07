@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { normalizeDocument, isValidDocument } from '@/lib/document'
 
-/** Cliente: nome obrigatório, documento opcional (vazio ou CPF/CNPJ). */
+/** Só dígitos. */
+const onlyDigits = (v: string) => v.replace(/\D/g, '')
+
+/** Cliente: nome obrigatório; documento e telefone opcionais. */
 export const customerSchema = z.object({
   name: z
     .string()
@@ -13,6 +16,12 @@ export const customerSchema = z.object({
     .transform(normalizeDocument)
     .refine((v) => v === '' || isValidDocument(v), {
       message: 'Documento deve ser um CPF (11 dígitos) ou CNPJ (14 caracteres), ou ficar vazio',
+    }),
+  phone: z
+    .string()
+    .transform(onlyDigits)
+    .refine((v) => v === '' || v.length === 10 || v.length === 11, {
+      message: 'Telefone deve ter 10 ou 11 dígitos (com DDD), ou ficar vazio',
     }),
 })
 
