@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card'
 import { getTenantName } from '@/lib/auth'
 
 const shortcuts = [
+  { to: '/painel', title: 'Painel do dia', desc: 'Fila e faturamento em tempo real.' },
   { to: '/ordens', title: 'Ordens de serviço', desc: 'Abra e acompanhe as ordens.' },
   { to: '/clientes', title: 'Clientes', desc: 'Cadastre e gerencie seus clientes.' },
   { to: '/veiculos', title: 'Veículos', desc: 'Vincule veículos aos clientes.' },
