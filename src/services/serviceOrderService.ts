@@ -13,6 +13,10 @@ export async function listServiceOrders(filters?: {
   status?: ServiceStatus
   customerId?: string
   vehicleId?: string
+  fromDate?: string
+  toDate?: string
+  minAmount?: number
+  maxAmount?: number
 }): Promise<ServiceOrderResponse[]> {
   const { data } = await api.get<ServiceOrderResponse[]>('/service-orders', {
     params: filters ?? undefined,

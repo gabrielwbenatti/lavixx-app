@@ -14,6 +14,7 @@ import { AtendimentoPage } from '@/pages/AtendimentoPage'
 import { PainelPage } from '@/pages/PainelPage'
 import { PaymentMethodsPage } from '@/pages/PaymentMethodsPage'
 import { RelatoriosPage } from '@/pages/RelatoriosPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { AppLayout } from './AppLayout'
 
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: '/formas-pagamento', element: <PaymentMethodsPage /> },
           { path: '/ordens', element: <OrdersPage /> },
           { path: '/ordens/:id', element: <OrderDetailPage /> },
+          { path: '/configuracoes', element: <SettingsPage /> },
         ],
       },
     ],

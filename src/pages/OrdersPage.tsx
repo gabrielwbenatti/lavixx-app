@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
@@ -16,6 +17,8 @@ import { VehicleSearch } from '@/components/VehicleSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
+import { useOrderFilters } from '@/lib/useOrderFilters'
+import { toDateInput } from '@/lib/datetime'
 import { createOrderSchema, type CreateOrderForm } from '@/lib/schemas/serviceOrderSchemas'
 import { createServiceOrder, listServiceOrders } from '@/services/serviceOrderService'
 import { listVehicles } from '@/services/vehicleService'
@@ -29,14 +32,25 @@ import {
 export function OrdersPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [statusFilter, setStatusFilter] = useState<ServiceStatus | ''>('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formKey, setFormKey] = useState(0)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+
+  const { filters, setFilter, clearFilters, setDateRange } = useOrderFilters()
 
   const ordersQuery = useQuery({
-    queryKey: ['service-orders', statusFilter || 'all'],
-    queryFn: () => listServiceOrders(statusFilter ? { status: statusFilter } : undefined),
+    queryKey: ['service-orders', JSON.stringify(filters)],
+    queryFn: () => {
+      const queryParams = {
+        ...(filters.status && { status: filters.status }),
+        ...(filters.fromDate && { fromDate: `${filters.fromDate}T00:00:00Z` }),
+        ...(filters.toDate && { toDate: `${filters.toDate}T23:59:59Z` }),
+        ...(filters.minAmount && { minAmount: filters.minAmount }),
+        ...(filters.maxAmount && { maxAmount: filters.maxAmount }),
+      }
+      return listServiceOrders(Object.keys(queryParams).length > 0 ? queryParams : undefined)
+    },
   })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
@@ -112,23 +126,98 @@ export function OrdersPage() {
         </Card>
       )}
 
-      <div className="mb-4 flex items-center gap-2">
-        <label htmlFor="statusFilter" className="text-sm text-slate-500">
-          Filtrar por status:
-        </label>
-        <Select
-          id="statusFilter"
-          className="h-9 w-48"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ServiceStatus | '')}
-        >
-          <option value="">Todas</option>
-          {SERVICE_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {SERVICE_STATUS_LABELS[s]}
-            </option>
-          ))}
-        </Select>
+      <div className="mb-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="statusFilter" className="text-sm text-slate-500">
+            Filtrar por status:
+          </label>
+          <Select
+            id="statusFilter"
+            className="h-9 w-48"
+            value={filters.status || ''}
+            onChange={(e) => setFilter('status', e.target.value || undefined)}
+          >
+            <option value="">Todas</option>
+            {SERVICE_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {SERVICE_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </Select>
+          <Button
+            variant="outline"
+            className="h-9 text-xs"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            {showAdvancedFilters ? 'Ocultar' : 'Filtros avançados'}
+          </Button>
+          {Object.values(filters).some((v) => v) && (
+            <Button
+              variant="ghost"
+              className="h-9 text-xs"
+              onClick={clearFilters}
+            >
+              Limpar
+            </Button>
+          )}
+        </div>
+
+        {showAdvancedFilters && (
+          <Card className="p-4">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+              <div>
+                <label htmlFor="fromDate" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
+                  De
+                </label>
+                <Input
+                  id="fromDate"
+                  type="date"
+                  value={filters.fromDate || ''}
+                  onChange={(e) => setFilter('fromDate', e.target.value || undefined)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="toDate" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
+                  Até
+                </label>
+                <Input
+                  id="toDate"
+                  type="date"
+                  value={filters.toDate || ''}
+                  onChange={(e) => setFilter('toDate', e.target.value || undefined)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="minAmount" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
+                  Valor mínimo (R$)
+                </label>
+                <Input
+                  id="minAmount"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={filters.minAmount || ''}
+                  onChange={(e) => setFilter('minAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="maxAmount" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
+                  Valor máximo (R$)
+                </label>
+                <Input
+                  id="maxAmount"
+                  inputMode="decimal"
+                  placeholder="999999.99"
+                  value={filters.maxAmount || ''}
+                  onChange={(e) => setFilter('maxAmount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       {ordersQuery.isLoading && <p className="text-sm text-slate-500">Carregando…</p>}

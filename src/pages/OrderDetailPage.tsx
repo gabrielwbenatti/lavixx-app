@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/lib/toastContext'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -62,6 +63,7 @@ export function OrderDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { addToast } = useToast()
 
   const [addOpen, setAddOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ServiceOrderItemResponse | null>(null)
@@ -104,6 +106,7 @@ export function OrderDetailPage() {
     onSuccess: () => {
       invalidate()
       setAddOpen(false)
+      addToast('Item adicionado à ordem', 'success')
     },
     onError: (err) => setItemError(getApiErrorMessage(err)),
   })
@@ -123,13 +126,19 @@ export function OrderDetailPage() {
 
   const removeItemMutation = useMutation({
     mutationFn: (itemId: string) => removeServiceOrderItem(id, itemId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      addToast('Item removido', 'success')
+    },
     onError: (err) => window.alert(getApiErrorMessage(err)),
   })
 
   const statusMutation = useMutation({
     mutationFn: (status: ServiceStatus) => updateServiceOrderStatus(id, status),
-    onSuccess: invalidate,
+    onSuccess: (order) => {
+      invalidate()
+      addToast(`Ordem movida para '${order.status}'`, 'success')
+    },
     onError: (err) => setPageError(getApiErrorMessage(err)),
   })
 
@@ -148,6 +157,7 @@ export function OrderDetailPage() {
     onSuccess: () => {
       invalidate()
       setPayOpen(false)
+      addToast('Pagamento registrado', 'success')
     },
     onError: (err) => setPayError(getApiErrorMessage(err)),
   })

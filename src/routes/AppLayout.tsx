@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   type LucideIcon,
+  Settings,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const navItems: { to: string; label: string; icon: LucideIcon; end?: boolean }[]
   { to: '/veiculos',         label: 'Veículos',            icon: Car },
   { to: '/servicos',         label: 'Serviços',            icon: Wrench },
   { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
+  { to: '/configuracoes',    label: 'Configurações',       icon: Settings },
 ]
 
 export function AppLayout() {

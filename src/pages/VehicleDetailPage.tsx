@@ -17,6 +17,7 @@ import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { vehicleSchema, type VehicleForm } from '@/lib/schemas/vehicleSchema'
 import { getVehicle, updateVehicle } from '@/services/vehicleService'
+import { useOrderFilters } from '@/lib/useOrderFilters'
 import { listCustomers } from '@/services/customerService'
 import { listServiceOrders } from '@/services/serviceOrderService'
 import { VEHICLE_TYPES, VEHICLE_TYPE_LABELS, type VehicleRequest } from '@/types/vehicle'
@@ -28,6 +29,7 @@ export function VehicleDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const { filters, setFilter, clearFilters } = useOrderFilters()
 
   const vehicleQuery = useQuery({
     queryKey: ['vehicle', id],
@@ -35,8 +37,15 @@ export function VehicleDetailPage() {
   })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const ordersQuery = useQuery({
-    queryKey: ['service-orders', 'by-vehicle', id],
-    queryFn: () => listServiceOrders({ vehicleId: id }),
+    queryKey: ['service-orders', 'by-vehicle', id, JSON.stringify(filters)],
+    queryFn: () => {
+      const queryParams = {
+        vehicleId: id,
+        ...(filters.fromDate && { fromDate: `${filters.fromDate}T00:00:00Z` }),
+        ...(filters.toDate && { toDate: `${filters.toDate}T23:59:59Z` }),
+      }
+      return listServiceOrders(queryParams)
+    },
   })
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<VehicleForm>({
@@ -155,6 +164,34 @@ export function VehicleDetailPage() {
       </Card>
 
       {/* Histórico de ordens */}
+      <div className="mb-4 flex items-center gap-2">
+        <label htmlFor="fromDate" className="text-xs text-slate-500">
+          Período:
+        </label>
+        <Input
+          id="fromDate"
+          type="date"
+          value={filters.fromDate || ''}
+          onChange={(e) => setFilter('fromDate', e.target.value || undefined)}
+          className="h-9 w-32 text-xs"
+          placeholder="De"
+        />
+        <span className="text-xs text-slate-400">até</span>
+        <Input
+          id="toDate"
+          type="date"
+          value={filters.toDate || ''}
+          onChange={(e) => setFilter('toDate', e.target.value || undefined)}
+          className="h-9 w-32 text-xs"
+          placeholder="Até"
+        />
+        {(filters.fromDate || filters.toDate) && (
+          <Button variant="ghost" className="h-9 text-xs" onClick={clearFilters}>
+            Limpar
+          </Button>
+        )}
+      </div>
+
       <Card className="overflow-hidden">
         <h2 className="border-b border-slate-200 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
           Histórico de ordens
