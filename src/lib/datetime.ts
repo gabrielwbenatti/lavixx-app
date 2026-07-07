@@ -1,3 +1,17 @@
+/** Converte uma Date para o formato de <input type="date"> (yyyy-MM-dd, horário local). */
+export function toDateInput(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Formata uma data yyyy-MM-dd para exibição pt-BR (dd/MM/yyyy). */
+export function formatDateBR(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
 /** Verdadeiro se a data (ISO) cai no dia de hoje (horário local). */
 export function isToday(iso: string | null | undefined): boolean {
   if (!iso) return false

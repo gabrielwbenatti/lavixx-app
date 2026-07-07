@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 const navItems = [
   { to: '/home', label: 'Início', end: true },
   { to: '/painel', label: 'Painel do dia' },
+  { to: '/relatorios', label: 'Fechamento de caixa' },
   { to: '/ordens', label: 'Ordens de serviço' },
   { to: '/clientes', label: 'Clientes' },
   { to: '/veiculos', label: 'Veículos' },

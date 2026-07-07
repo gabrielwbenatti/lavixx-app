@@ -11,6 +11,7 @@ import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { AtendimentoPage } from '@/pages/AtendimentoPage'
 import { PainelPage } from '@/pages/PainelPage'
 import { PaymentMethodsPage } from '@/pages/PaymentMethodsPage'
+import { RelatoriosPage } from '@/pages/RelatoriosPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { AppLayout } from './AppLayout'
 
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/home', element: <HomePage /> },
           { path: '/painel', element: <PainelPage /> },
+          { path: '/relatorios', element: <RelatoriosPage /> },
           { path: '/clientes', element: <CustomersPage /> },
           { path: '/veiculos', element: <VehiclesPage /> },
           { path: '/servicos', element: <ServicesPage /> },
