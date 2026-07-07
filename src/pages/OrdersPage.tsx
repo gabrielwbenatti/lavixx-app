@@ -18,7 +18,6 @@ import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { useOrderFilters } from '@/lib/useOrderFilters'
-import { toDateInput } from '@/lib/datetime'
 import { createOrderSchema, type CreateOrderForm } from '@/lib/schemas/serviceOrderSchemas'
 import { createServiceOrder, listServiceOrders } from '@/services/serviceOrderService'
 import { listVehicles } from '@/services/vehicleService'
@@ -26,7 +25,6 @@ import { listCustomers } from '@/services/customerService'
 import {
   SERVICE_STATUSES,
   SERVICE_STATUS_LABELS,
-  type ServiceStatus,
 } from '@/types/serviceOrder'
 
 export function OrdersPage() {
@@ -37,7 +35,7 @@ export function OrdersPage() {
   const [formKey, setFormKey] = useState(0)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  const { filters, setFilter, clearFilters, setDateRange } = useOrderFilters()
+  const { filters, setFilter, clearFilters } = useOrderFilters()
 
   const ordersQuery = useQuery({
     queryKey: ['service-orders', JSON.stringify(filters)],

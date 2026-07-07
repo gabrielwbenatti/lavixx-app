@@ -10,7 +10,6 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/lib/toastContext'
-import { formatCurrency } from '@/lib/format'
 
 const api = (await import('@/lib/api')).api
 
