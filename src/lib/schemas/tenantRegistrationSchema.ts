@@ -1,7 +1,5 @@
 import { z } from 'zod'
-
-/** Remove tudo que nao for digito. */
-export const onlyDigits = (value: string) => value.replace(/\D/g, '')
+import { normalizeDocument, isValidDocument } from '@/lib/document'
 
 /**
  * Validacao do formulario de cadastro de tenant.
@@ -16,9 +14,9 @@ export const tenantRegistrationSchema = z
       .max(150, 'Maximo de 150 caracteres'),
     document: z
       .string()
-      .transform(onlyDigits)
-      .refine((v) => v.length === 11 || v.length === 14, {
-        message: 'Informe um CPF (11 digitos) ou CNPJ (14 digitos) valido',
+      .transform(normalizeDocument)
+      .refine(isValidDocument, {
+        message: 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres) válido',
       }),
     adminName: z
       .string()
@@ -28,6 +26,7 @@ export const tenantRegistrationSchema = z
     adminEmail: z
       .string()
       .trim()
+      .toLowerCase()
       .min(1, 'Informe o e-mail')
       .email('E-mail invalido')
       .max(150, 'Maximo de 150 caracteres'),

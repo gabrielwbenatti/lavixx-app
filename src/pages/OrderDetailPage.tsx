@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { getApiErrorMessage } from '@/lib/api'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import {
   orderItemSchema,
@@ -186,7 +186,7 @@ export function OrderDetailPage() {
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {vehicle ? describeVehicle(vehicle) : 'Veículo'}
-              {vehicle?.plate ? ` · ${vehicle.plate}` : ''}
+              {vehicle?.plate ? ` · ${formatPlate(vehicle.plate)}` : ''}
             </p>
             <p className="mt-1 text-xs text-slate-400">
               Aberta em {new Date(order.createdAt).toLocaleString('pt-BR')}

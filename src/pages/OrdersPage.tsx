@@ -88,9 +88,14 @@ export function OrdersPage() {
             Acompanhe e gerencie as ordens do seu estabelecimento.
           </p>
         </div>
-        <Button onClick={openCreate} disabled={!hasVehicles}>
-          Nova ordem
-        </Button>
+        <div className="flex gap-2">
+          <Link to="/atendimento">
+            <Button variant="outline">Atendimento rápido</Button>
+          </Link>
+          <Button onClick={openCreate} disabled={!hasVehicles}>
+            Nova ordem
+          </Button>
+        </div>
       </header>
 
       {!hasVehicles && !vehiclesQuery.isLoading && (

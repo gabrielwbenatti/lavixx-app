@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { onlyDigits } from './tenantRegistrationSchema'
+import { normalizeDocument, isValidDocument } from '@/lib/document'
 
 /** Cliente: nome obrigatório, documento opcional (vazio ou CPF/CNPJ). */
 export const customerSchema = z.object({
@@ -10,9 +10,9 @@ export const customerSchema = z.object({
     .max(150, 'Máximo de 150 caracteres'),
   document: z
     .string()
-    .transform(onlyDigits)
-    .refine((v) => v === '' || v.length === 11 || v.length === 14, {
-      message: 'Documento deve ter 11 (CPF) ou 14 (CNPJ) dígitos, ou ficar vazio',
+    .transform(normalizeDocument)
+    .refine((v) => v === '' || isValidDocument(v), {
+      message: 'Documento deve ser um CPF (11 dígitos) ou CNPJ (14 caracteres), ou ficar vazio',
     }),
 })
 

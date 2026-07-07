@@ -25,6 +25,7 @@ import {
   type VehicleResponse,
 } from '@/types/vehicle'
 import { describeVehicle } from '@/lib/describe'
+import { formatPlate } from '@/lib/format'
 
 export function VehiclesPage() {
   const queryClient = useQueryClient()
@@ -183,7 +184,7 @@ export function VehiclesPage() {
                     {VEHICLE_TYPE_LABELS[vehicle.type]}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                    {vehicle.plate || '—'}
+                    {formatPlate(vehicle.plate)}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {customerNameById.get(vehicle.customerId) ?? '—'}
@@ -254,7 +255,7 @@ export function VehiclesPage() {
               <Input id="nickname" placeholder="Ex.: Gol do João" {...register('nickname')} />
             </Field>
             <Field label="Placa" htmlFor="plate" error={errors.plate?.message}>
-              <Input id="plate" placeholder="ABC1D23" {...register('plate')} />
+              <Input id="plate" placeholder="ABC1D23" className="uppercase" {...register('plate')} />
             </Field>
           </div>
 

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { describeVehicle } from '@/lib/describe'
+import { normalizePlate } from '@/lib/plate'
+import { formatPlate } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { VEHICLE_TYPE_LABELS, type VehicleResponse } from '@/types/vehicle'
 
@@ -11,9 +13,6 @@ interface VehicleSearchProps {
   invalid?: boolean
   autoFocus?: boolean
 }
-
-/** Normaliza para comparação de placa (só letras/números, maiúsculo). */
-const normalizePlate = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase()
 
 /** Mínimo de caracteres para exibir a lista de resultados. */
 const MIN_CHARS = 3
@@ -61,7 +60,7 @@ export function VehicleSearch({
 
   const label = (v: VehicleResponse) => {
     const customer = customerNameById.get(v.customerId)
-    const base = v.plate ? `${v.plate} — ${describeVehicle(v)}` : describeVehicle(v)
+    const base = v.plate ? `${formatPlate(v.plate)} — ${describeVehicle(v)}` : describeVehicle(v)
     return customer ? `${base} (${customer})` : base
   }
 
@@ -142,7 +141,7 @@ export function VehicleSearch({
                     onClick={() => pick(v)}
                   >
                     <span className="font-medium text-slate-800 dark:text-slate-100">
-                      {v.plate ? v.plate : describeVehicle(v)}
+                      {v.plate ? formatPlate(v.plate) : describeVehicle(v)}
                       <span className="ml-2 text-xs font-normal text-slate-400">
                         {VEHICLE_TYPE_LABELS[v.type]}
                       </span>
@@ -165,7 +164,7 @@ export function VehicleSearch({
           {customerNameById.get(selectedVehicle.customerId) ?? '—'}
           {' · '}
           <span className="font-medium">Veículo:</span> {describeVehicle(selectedVehicle)}
-          {selectedVehicle.plate ? ` (${selectedVehicle.plate})` : ''}
+          {selectedVehicle.plate ? ` (${formatPlate(selectedVehicle.plate)})` : ''}
         </div>
       )}
     </div>

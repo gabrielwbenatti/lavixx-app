@@ -24,6 +24,18 @@ export function HomePage() {
         </p>
       </header>
 
+      <Link to="/atendimento">
+        <Card className="mb-6 flex items-center justify-between bg-indigo-600 p-6 text-white transition-colors hover:bg-indigo-500">
+          <div>
+            <h2 className="text-lg font-bold">🚗 Atendimento rápido</h2>
+            <p className="text-sm text-indigo-100">
+              Chegou um cliente? Comece pela placa e abra a ordem em segundos.
+            </p>
+          </div>
+          <span className="text-2xl">→</span>
+        </Card>
+      </Link>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {shortcuts.map((s) => (
           <Link key={s.to} to={s.to}>
