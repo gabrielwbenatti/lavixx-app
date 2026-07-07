@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { BarChart3 } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -42,11 +43,16 @@ export function RelatoriosPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Fechamento de caixa</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Faturamento, recebimentos e desempenho por período.
-        </p>
+      <header className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+          <BarChart3 size={20} strokeWidth={1.75} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Fechamento de caixa</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Faturamento, recebimentos e desempenho por período.
+          </p>
+        </div>
       </header>
 
       {/* Filtro de período */}

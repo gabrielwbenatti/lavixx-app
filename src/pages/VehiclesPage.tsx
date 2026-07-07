@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Car, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -132,13 +133,19 @@ export function VehiclesPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Veículos</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Veículos vinculados aos clientes.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+            <Car size={20} strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Veículos</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Veículos vinculados aos clientes.
+            </p>
+          </div>
         </div>
-        <Button onClick={openCreate} disabled={!hasCustomers}>
+        <Button onClick={openCreate} disabled={!hasCustomers} className="gap-2">
+          <Plus size={16} />
           Novo veículo
         </Button>
       </header>

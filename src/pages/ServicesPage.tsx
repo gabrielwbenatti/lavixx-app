@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus, Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -90,13 +91,21 @@ export function ServicesPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Serviços</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Catálogo de serviços oferecidos e seus preços.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+            <Wrench size={20} strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Serviços</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Catálogo de serviços oferecidos e seus preços.
+            </p>
+          </div>
         </div>
-        <Button onClick={openCreate}>Novo serviço</Button>
+        <Button onClick={openCreate} className="gap-2">
+          <Plus size={16} />
+          Novo serviço
+        </Button>
       </header>
 
       {isLoading && <p className="text-sm text-slate-500">Carregando…</p>}

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ClipboardList, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -83,17 +84,23 @@ export function OrdersPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ordens de serviço</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Acompanhe e gerencie as ordens do seu estabelecimento.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+            <ClipboardList size={20} strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ordens de serviço</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Acompanhe e gerencie as ordens do seu estabelecimento.
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Link to="/atendimento" className="hidden sm:block">
             <Button variant="outline">Atendimento rápido</Button>
           </Link>
-          <Button onClick={openCreate} disabled={!hasVehicles}>
+          <Button onClick={openCreate} disabled={!hasVehicles} className="gap-2">
+            <Plus size={16} />
             Nova ordem
           </Button>
         </div>

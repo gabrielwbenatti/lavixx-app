@@ -1,18 +1,30 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  BarChart3,
+  Car,
+  ClipboardList,
+  CreditCard,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  type LucideIcon,
+  Users,
+  Wrench,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { clearSession, getTenantName } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 
-const navItems = [
-  { to: '/home', label: 'Início', end: true },
-  { to: '/painel', label: 'Painel do dia' },
-  { to: '/relatorios', label: 'Fechamento de caixa' },
-  { to: '/ordens', label: 'Ordens de serviço' },
-  { to: '/clientes', label: 'Clientes' },
-  { to: '/veiculos', label: 'Veículos' },
-  { to: '/servicos', label: 'Serviços' },
-  { to: '/formas-pagamento', label: 'Formas de pagamento' },
+const navItems: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
+  { to: '/home',             label: 'Início',              icon: Home,          end: true },
+  { to: '/painel',           label: 'Painel do dia',       icon: LayoutDashboard },
+  { to: '/relatorios',       label: 'Fechamento de caixa', icon: BarChart3 },
+  { to: '/ordens',           label: 'Ordens de serviço',   icon: ClipboardList },
+  { to: '/clientes',         label: 'Clientes',            icon: Users },
+  { to: '/veiculos',         label: 'Veículos',            icon: Car },
+  { to: '/servicos',         label: 'Serviços',            icon: Wrench },
+  { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
 ]
 
 export function AppLayout() {
@@ -60,27 +72,29 @@ export function AppLayout() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 px-3">
-        {navItems.map((item) => (
+        {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
+            key={to}
+            to={to}
+            end={end}
             className={({ isActive }) =>
               cn(
-                'rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
                   : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
               )
             }
           >
-            {item.label}
+            <Icon size={18} strokeWidth={1.75} />
+            {label}
           </NavLink>
         ))}
       </nav>
 
       <div className="p-3">
-        <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
+        <Button variant="ghost" onClick={handleLogout} className="w-full justify-start gap-3">
+          <LogOut size={18} strokeWidth={1.75} />
           Sair
         </Button>
       </div>
