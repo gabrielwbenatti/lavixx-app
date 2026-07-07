@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
@@ -57,6 +58,10 @@ export function PainelPage() {
     .sort((a, b) => (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''))
 
   const revenueToday = doneToday.reduce((sum, o) => sum + o.total, 0)
+  const receivableToday = doneToday.reduce(
+    (sum, o) => sum + Math.max(o.total - o.paidTotal, 0),
+    0,
+  )
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: ServiceStatus }) =>
@@ -75,11 +80,12 @@ export function PainelPage() {
       </header>
 
       {/* Indicadores do dia */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile label="Na fila" value={String(waiting.length)} tone="amber" />
         <StatTile label="Em andamento" value={String(inProgress.length)} tone="blue" />
         <StatTile label="Concluídas hoje" value={String(doneToday.length)} tone="green" />
         <StatTile label="Faturamento hoje" value={formatCurrency(revenueToday)} tone="indigo" />
+        <StatTile label="A receber hoje" value={formatCurrency(receivableToday)} tone="red" />
       </div>
 
       {ordersQuery.isError && (
@@ -142,6 +148,7 @@ const toneStyles = {
   blue: 'text-blue-700 dark:text-blue-300',
   green: 'text-green-700 dark:text-green-300',
   indigo: 'text-indigo-700 dark:text-indigo-300',
+  red: 'text-red-600 dark:text-red-400',
 } as const
 type Tone = keyof typeof toneStyles
 
@@ -220,6 +227,11 @@ function OrderCard({
           {' · '}
           {order.items.length} {order.items.length === 1 ? 'item' : 'itens'}
         </div>
+        {(order.status === 'done' || order.paymentStatus !== 'pending') && (
+          <div className="mt-1.5">
+            <PaymentBadge status={order.paymentStatus} />
+          </div>
+        )}
       </button>
 
       {next && onAction && (

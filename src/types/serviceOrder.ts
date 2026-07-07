@@ -1,5 +1,7 @@
 /** Espelha os DTOs de ordem de serviço da API. */
 
+import type { PaymentResponse, PaymentStatus } from '@/types/payment'
+
 export const SERVICE_STATUSES = ['waiting', 'in_progress', 'done', 'cancelled'] as const
 export type ServiceStatus = (typeof SERVICE_STATUSES)[number]
 
@@ -49,6 +51,9 @@ export interface ServiceOrderResponse {
   status: ServiceStatus
   items: ServiceOrderItemResponse[]
   total: number
+  payments: PaymentResponse[]
+  paidTotal: number
+  paymentStatus: PaymentStatus
   createdAt: string
   updatedAt: string
   finishedAt: string | null

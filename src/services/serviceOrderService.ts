@@ -7,6 +7,7 @@ import type {
   ServiceStatus,
   UpdateItemRequest,
 } from '@/types/serviceOrder'
+import type { PaymentRequest } from '@/types/payment'
 
 export async function listServiceOrders(status?: ServiceStatus): Promise<ServiceOrderResponse[]> {
   const { data } = await api.get<ServiceOrderResponse[]>('/service-orders', {
@@ -60,6 +61,27 @@ export async function updateServiceOrderItem(
 
 export async function removeServiceOrderItem(orderId: string, itemId: string): Promise<void> {
   await api.delete(`/service-orders/${orderId}/items/${itemId}`)
+}
+
+export async function addServiceOrderPayment(
+  orderId: string,
+  payload: PaymentRequest,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.post<ServiceOrderResponse>(
+    `/service-orders/${orderId}/payments`,
+    payload,
+  )
+  return data
+}
+
+export async function removeServiceOrderPayment(
+  orderId: string,
+  paymentId: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.delete<ServiceOrderResponse>(
+    `/service-orders/${orderId}/payments/${paymentId}`,
+  )
+  return data
 }
 
 export async function deleteServiceOrder(id: string): Promise<void> {

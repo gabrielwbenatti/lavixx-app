@@ -11,8 +11,10 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
+import { formatTime } from '@/lib/datetime'
 import { describeVehicle } from '@/lib/describe'
 import {
   orderItemSchema,
@@ -23,16 +25,24 @@ import {
   type EditItemFormOutput,
 } from '@/lib/schemas/serviceOrderSchemas'
 import {
+  paymentSchema,
+  type PaymentFormInput,
+  type PaymentFormOutput,
+} from '@/lib/schemas/paymentSchema'
+import {
   addServiceOrderItem,
+  addServiceOrderPayment,
   deleteServiceOrder,
   getServiceOrder,
   removeServiceOrderItem,
+  removeServiceOrderPayment,
   updateServiceOrderItem,
   updateServiceOrderStatus,
 } from '@/services/serviceOrderService'
 import { listServices } from '@/services/serviceService'
 import { listVehicles } from '@/services/vehicleService'
 import { listCustomers } from '@/services/customerService'
+import { listPaymentMethods } from '@/services/paymentMethodService'
 import {
   EDITABLE_STATUSES,
   SERVICE_STATUS_LABELS,
@@ -40,6 +50,7 @@ import {
   type ServiceOrderItemResponse,
   type ServiceStatus,
 } from '@/types/serviceOrder'
+import type { PaymentResponse } from '@/types/payment'
 
 const ACTION_LABELS: Partial<Record<ServiceStatus, string>> = {
   in_progress: 'Iniciar',
@@ -56,17 +67,26 @@ export function OrderDetailPage() {
   const [editingItem, setEditingItem] = useState<ServiceOrderItemResponse | null>(null)
   const [itemError, setItemError] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [payOpen, setPayOpen] = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  const paymentMethodsQuery = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: listPaymentMethods,
+  })
 
   const addForm = useForm<OrderItemFormInput, unknown, OrderItemFormOutput>({
     resolver: zodResolver(orderItemSchema),
   })
   const editForm = useForm<EditItemFormInput, unknown, EditItemFormOutput>({
     resolver: zodResolver(editItemSchema),
+  })
+  const payForm = useForm<PaymentFormInput, unknown, PaymentFormOutput>({
+    resolver: zodResolver(paymentSchema),
   })
 
   const invalidate = () => {
@@ -122,6 +142,22 @@ export function OrderDetailPage() {
     onError: (err) => setPageError(getApiErrorMessage(err)),
   })
 
+  const addPaymentMutation = useMutation({
+    mutationFn: (form: PaymentFormOutput) =>
+      addServiceOrderPayment(id, { paymentMethodId: form.paymentMethodId, amount: form.amount }),
+    onSuccess: () => {
+      invalidate()
+      setPayOpen(false)
+    },
+    onError: (err) => setPayError(getApiErrorMessage(err)),
+  })
+
+  const removePaymentMutation = useMutation({
+    mutationFn: (paymentId: string) => removeServiceOrderPayment(id, paymentId),
+    onSuccess: invalidate,
+    onError: (err) => window.alert(getApiErrorMessage(err)),
+  })
+
   if (orderQuery.isLoading) {
     return <p className="text-sm text-slate-500">Carregando…</p>
   }
@@ -165,6 +201,24 @@ export function OrderDetailPage() {
     }
   }
 
+  const remaining = Math.max(order.total - order.paidTotal, 0)
+  const activeMethods = paymentMethodsQuery.data?.filter((m) => m.active) ?? []
+
+  const openPay = () => {
+    setPayError(null)
+    payForm.reset({
+      paymentMethodId: activeMethods[0]?.id ?? '',
+      amount: remaining > 0 ? String(remaining.toFixed(2)) : '',
+    })
+    setPayOpen(true)
+  }
+
+  const handleRemovePayment = (payment: PaymentResponse) => {
+    if (window.confirm(`Remover o pagamento de ${formatCurrency(payment.amount)} (${payment.methodName})?`)) {
+      removePaymentMutation.mutate(payment.id)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link to="/ordens" className="mb-4 inline-block text-sm text-indigo-600 hover:underline">
@@ -195,7 +249,10 @@ export function OrderDetailPage() {
                 : ''}
             </p>
           </div>
-          <StatusBadge status={order.status} />
+          <div className="flex flex-col items-end gap-1.5">
+            <StatusBadge status={order.status} />
+            <PaymentBadge status={order.paymentStatus} />
+          </div>
         </div>
 
         {/* Ações de status */}
@@ -313,6 +370,133 @@ export function OrderDetailPage() {
           </table>
         )}
       </Card>
+
+      {/* Pagamentos */}
+      <Card className="mt-4 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100">Pagamentos</h2>
+          {order.status !== 'cancelled' && (
+            <Button
+              className="h-9 px-3"
+              disabled={activeMethods.length === 0}
+              onClick={openPay}
+            >
+              Registrar pagamento
+            </Button>
+          )}
+        </div>
+
+        {/* Resumo financeiro */}
+        <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 text-center dark:divide-slate-800 dark:border-slate-800">
+          <div className="px-2 py-3">
+            <div className="text-xs text-slate-400">Total</div>
+            <div className="font-semibold text-slate-800 dark:text-slate-100">
+              {formatCurrency(order.total)}
+            </div>
+          </div>
+          <div className="px-2 py-3">
+            <div className="text-xs text-slate-400">Pago</div>
+            <div className="font-semibold text-green-700 dark:text-green-400">
+              {formatCurrency(order.paidTotal)}
+            </div>
+          </div>
+          <div className="px-2 py-3">
+            <div className="text-xs text-slate-400">Falta</div>
+            <div className="font-semibold text-red-600 dark:text-red-400">
+              {formatCurrency(remaining)}
+            </div>
+          </div>
+        </div>
+
+        {order.payments.length === 0 ? (
+          <p className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            Nenhum pagamento registrado.
+          </p>
+        ) : (
+          <ul>
+            {order.payments.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between border-b border-slate-100 px-4 py-3 last:border-0 dark:border-slate-800"
+              >
+                <div>
+                  <div className="font-medium text-slate-800 dark:text-slate-100">{p.methodName}</div>
+                  <div className="text-xs text-slate-400">{formatTime(p.paidAt)}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-slate-800 dark:text-slate-100">
+                    {formatCurrency(p.amount)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    className="h-8 px-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                    onClick={() => handleRemovePayment(p)}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Dialog: registrar pagamento */}
+      <Dialog open={payOpen} onClose={() => setPayOpen(false)} title="Registrar pagamento">
+        {payError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {payError}
+          </div>
+        )}
+        <form
+          onSubmit={payForm.handleSubmit((form) => {
+            setPayError(null)
+            addPaymentMutation.mutate(form)
+          })}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Field
+            label="Forma de pagamento"
+            htmlFor="paymentMethodId"
+            error={payForm.formState.errors.paymentMethodId?.message}
+          >
+            <Select
+              id="paymentMethodId"
+              invalid={!!payForm.formState.errors.paymentMethodId}
+              {...payForm.register('paymentMethodId')}
+            >
+              {activeMethods.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="Valor (R$)"
+            htmlFor="amount"
+            error={payForm.formState.errors.amount?.message}
+            hint={remaining > 0 ? `Falta ${formatCurrency(remaining)}` : undefined}
+          >
+            <Input
+              id="amount"
+              inputMode="decimal"
+              placeholder="0,00"
+              invalid={!!payForm.formState.errors.amount}
+              {...payForm.register('amount')}
+            />
+          </Field>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setPayOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={addPaymentMutation.isPending}>
+              {addPaymentMutation.isPending ? 'Registrando…' : 'Registrar'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       {/* Dialog: adicionar item */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} title="Adicionar item">

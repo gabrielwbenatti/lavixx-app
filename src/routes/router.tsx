@@ -10,6 +10,7 @@ import { OrdersPage } from '@/pages/OrdersPage'
 import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { AtendimentoPage } from '@/pages/AtendimentoPage'
 import { PainelPage } from '@/pages/PainelPage'
+import { PaymentMethodsPage } from '@/pages/PaymentMethodsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { AppLayout } from './AppLayout'
 
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
           { path: '/clientes', element: <CustomersPage /> },
           { path: '/veiculos', element: <VehiclesPage /> },
           { path: '/servicos', element: <ServicesPage /> },
+          { path: '/formas-pagamento', element: <PaymentMethodsPage /> },
           { path: '/ordens', element: <OrdersPage /> },
           { path: '/ordens/:id', element: <OrderDetailPage /> },
         ],

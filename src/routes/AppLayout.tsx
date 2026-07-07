@@ -10,6 +10,7 @@ const navItems = [
   { to: '/clientes', label: 'Clientes' },
   { to: '/veiculos', label: 'Veículos' },
   { to: '/servicos', label: 'Serviços' },
+  { to: '/formas-pagamento', label: 'Formas de pagamento' },
 ]
 
 /** Layout do painel autenticado: barra lateral de navegação + conteúdo. */

@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { VehicleSearch } from '@/components/VehicleSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
@@ -141,6 +142,7 @@ export function OrdersPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Cliente / Veículo</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Pagamento</th>
                 <th className="px-4 py-3 font-medium">Itens</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Aberta em</th>
@@ -163,6 +165,9 @@ export function OrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={order.status} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <PaymentBadge status={order.paymentStatus} />
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {order.items.length}
