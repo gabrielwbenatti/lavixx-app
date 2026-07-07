@@ -80,7 +80,7 @@ export function PainelPage() {
       </header>
 
       {/* Indicadores do dia */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <StatTile label="Na fila" value={String(waiting.length)} tone="amber" />
         <StatTile label="Em andamento" value={String(inProgress.length)} tone="blue" />
         <StatTile label="Concluídas hoje" value={String(doneToday.length)} tone="green" />
@@ -93,7 +93,7 @@ export function PainelPage() {
       )}
 
       {/* Quadro */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         <Column title="Aguardando" count={waiting.length} tone="amber">
           {waiting.map((o) => (
             <OrderCard

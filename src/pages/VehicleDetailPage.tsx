@@ -175,10 +175,10 @@ export function VehicleDetailPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-2 font-medium">Data</th>
-                <th className="px-4 py-2 font-medium">Serviços</th>
+                <th className="hidden px-4 py-2 font-medium md:table-cell">Serviços</th>
                 <th className="px-4 py-2 font-medium">Total</th>
                 <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Pagamento</th>
+                <th className="hidden px-4 py-2 font-medium sm:table-cell">Pagamento</th>
               </tr>
             </thead>
             <tbody>
@@ -192,8 +192,11 @@ export function VehicleDetailPage() {
                   >
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
                       {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                      <div className="mt-0.5 sm:hidden">
+                        <PaymentBadge status={order.paymentStatus} />
+                      </div>
                     </td>
-                    <td className="max-w-[220px] truncate px-4 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="hidden max-w-[220px] truncate px-4 py-2 text-slate-600 dark:text-slate-300 md:table-cell">
                       {serviceNames || '—'}
                     </td>
                     <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-100">
@@ -202,7 +205,7 @@ export function VehicleDetailPage() {
                     <td className="px-4 py-2">
                       <StatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="hidden px-4 py-2 sm:table-cell">
                       <PaymentBadge status={order.paymentStatus} />
                     </td>
                   </tr>

@@ -120,8 +120,8 @@ export function CustomersPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3 font-medium">Nome</th>
-                <th className="px-4 py-3 font-medium">Telefone</th>
-                <th className="px-4 py-3 font-medium">CPF/CNPJ</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">Telefone</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">CPF/CNPJ</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -138,11 +138,14 @@ export function CustomersPage() {
                     >
                       {customer.name}
                     </Link>
+                    <div className="mt-0.5 text-xs text-slate-400 sm:hidden">
+                      {formatPhone(customer.phone)}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {formatPhone(customer.phone)}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {formatDocument(customer.document)}
                   </td>
                   <td className="px-4 py-3 text-right">

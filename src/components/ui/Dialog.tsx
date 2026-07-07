@@ -28,15 +28,20 @@ export function Dialog({ open, onClose, title, description, children }: DialogPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
       onMouseDown={onClose}
     >
       <Card
-        className="w-full max-w-lg p-6"
+        className="w-full max-w-lg overflow-y-auto rounded-t-2xl rounded-b-none p-6 sm:rounded-2xl"
+        style={{ maxHeight: '90dvh' }}
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
+        {/* Alça visual no mobile */}
+        <div className="mb-4 flex justify-center sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
+        </div>
         <div className="mb-4">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
           {description && (

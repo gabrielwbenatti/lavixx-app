@@ -82,7 +82,7 @@ export function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Ordens de serviço</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -90,7 +90,7 @@ export function OrdersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/atendimento">
+          <Link to="/atendimento" className="hidden sm:block">
             <Button variant="outline">Atendimento rápido</Button>
           </Link>
           <Button onClick={openCreate} disabled={!hasVehicles}>
@@ -142,10 +142,10 @@ export function OrdersPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Cliente / Veículo</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Pagamento</th>
-                <th className="px-4 py-3 font-medium">Itens</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">Pagamento</th>
+                <th className="hidden px-4 py-3 font-medium md:table-cell">Itens</th>
                 <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Aberta em</th>
+                <th className="hidden px-4 py-3 font-medium md:table-cell">Aberta em</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -162,20 +162,23 @@ export function OrdersPage() {
                     <div className="text-xs text-slate-400">
                       {vehicleLabelById.get(order.vehicleId) ?? '—'}
                     </div>
+                    <div className="mt-1 sm:hidden">
+                      <PaymentBadge status={order.paymentStatus} />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={order.status} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 sm:table-cell">
                     <PaymentBadge status={order.paymentStatus} />
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 md:table-cell">
                     {order.items.length}
                   </td>
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                     {formatCurrency(order.total)}
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="hidden px-4 py-3 text-slate-500 md:table-cell">
                     {new Date(order.createdAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3 text-right">

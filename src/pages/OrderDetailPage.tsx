@@ -306,9 +306,9 @@ export function OrderDetailPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-2 font-medium">Serviço</th>
-                <th className="px-4 py-2 font-medium">Unit.</th>
-                <th className="px-4 py-2 font-medium">Desc./un.</th>
-                <th className="px-4 py-2 font-medium">Qtd</th>
+                <th className="hidden px-4 py-2 font-medium sm:table-cell">Unit.</th>
+                <th className="hidden px-4 py-2 font-medium sm:table-cell">Desc./un.</th>
+                <th className="hidden px-4 py-2 font-medium sm:table-cell">Qtd</th>
                 <th className="px-4 py-2 font-medium">Subtotal</th>
                 {editable && <th className="px-4 py-2" />}
               </tr>
@@ -321,14 +321,21 @@ export function OrderDetailPage() {
                 >
                   <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-100">
                     {item.name}
+                    <div className="mt-0.5 text-xs font-normal text-slate-400 sm:hidden">
+                      {formatCurrency(item.unitPrice)}
+                      {item.quantity > 1 && ` × ${item.quantity}`}
+                      {item.discount > 0 && ` − ${formatCurrency(item.discount)}/un.`}
+                    </div>
                   </td>
-                  <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-2 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {formatCurrency(item.unitPrice)}
                   </td>
-                  <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-2 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {item.discount > 0 ? formatCurrency(item.discount) : '—'}
                   </td>
-                  <td className="px-4 py-2 text-slate-600 dark:text-slate-300">{item.quantity}</td>
+                  <td className="hidden px-4 py-2 text-slate-600 dark:text-slate-300 sm:table-cell">
+                    {item.quantity}
+                  </td>
                   <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-100">
                     {formatCurrency(item.finalPrice)}
                   </td>

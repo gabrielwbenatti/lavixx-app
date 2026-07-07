@@ -166,9 +166,9 @@ export function VehiclesPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-500 dark:border-slate-800 dark:bg-slate-800/50">
               <tr>
                 <th className="px-4 py-3 font-medium">Veículo</th>
-                <th className="px-4 py-3 font-medium">Tipo</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">Tipo</th>
                 <th className="px-4 py-3 font-medium">Placa</th>
-                <th className="px-4 py-3 font-medium">Cliente</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell">Cliente</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -185,14 +185,17 @@ export function VehiclesPage() {
                     >
                       {describeVehicle(vehicle)}
                     </Link>
+                    <div className="mt-0.5 text-xs text-slate-400 sm:hidden">
+                      {customerNameById.get(vehicle.customerId) ?? '—'}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {VEHICLE_TYPE_LABELS[vehicle.type]}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {formatPlate(vehicle.plate)}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
                     {customerNameById.get(vehicle.customerId) ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
