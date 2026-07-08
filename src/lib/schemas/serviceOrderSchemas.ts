@@ -11,7 +11,8 @@ export type CreateOrderForm = z.infer<typeof createOrderSchema>
  * quantidade e desconto (por unidade) são digitados como texto e convertidos.
  */
 export const orderItemSchema = z.object({
-  serviceId: z.string().min(1, 'Selecione o serviço'),
+  // Referência ao catálogo no formato "service:<id>" ou "product:<id>".
+  catalogRef: z.string().min(1, 'Selecione o item'),
   quantity: z
     .string()
     .trim()
@@ -32,7 +33,7 @@ export const orderItemSchema = z.object({
 export type OrderItemFormInput = z.input<typeof orderItemSchema>
 export type OrderItemFormOutput = z.output<typeof orderItemSchema>
 
-/** Edição de item existente: apenas quantidade e desconto (o serviço não muda). */
-export const editItemSchema = orderItemSchema.omit({ serviceId: true })
+/** Edição de item existente: apenas quantidade e desconto (o item do catálogo não muda). */
+export const editItemSchema = orderItemSchema.omit({ catalogRef: true })
 export type EditItemFormInput = z.input<typeof editItemSchema>
 export type EditItemFormOutput = z.output<typeof editItemSchema>

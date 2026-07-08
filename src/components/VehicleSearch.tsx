@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { describeVehicle } from '@/lib/describe'
 import { normalizePlate } from '@/lib/plate'
+import { normalizeSearch } from '@/lib/text'
 import { formatPlate } from '@/lib/format'
 import { cn } from '@/lib/cn'
 import { VEHICLE_TYPE_LABELS, type VehicleResponse } from '@/types/vehicle'
@@ -36,22 +37,17 @@ export function VehicleSearch({
   const [selectedId, setSelectedId] = useState('')
 
   const matches = useMemo(() => {
-    const q = query.trim().toLowerCase()
+    const q = normalizeSearch(query.trim())
     const qPlate = normalizePlate(query)
     if (q.length < MIN_CHARS) return []
     return vehicles
       .filter((v) => {
-        const customer = customerNameById.get(v.customerId)?.toLowerCase() ?? ''
-        const haystack = [
-          v.nickname,
-          v.manufacturer,
-          v.model,
-          v.identifier,
-          customer,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
+        const customer = customerNameById.get(v.customerId) ?? ''
+        const haystack = normalizeSearch(
+          [v.nickname, v.manufacturer, v.model, v.identifier, customer]
+            .filter(Boolean)
+            .join(' '),
+        )
         const plateMatch = v.plate ? normalizePlate(v.plate).includes(qPlate) && qPlate !== '' : false
         return plateMatch || haystack.includes(q)
       })

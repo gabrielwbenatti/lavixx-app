@@ -16,9 +16,10 @@ import { formatCurrency, formatDocument, formatPhone, formatPlate } from '@/lib/
 import { describeVehicle } from '@/lib/describe'
 import { useOrderFilters } from '@/lib/useOrderFilters'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
-import { getCustomer, updateCustomer } from '@/services/customerService'
+import { getCustomer, getCustomerLoyalty, updateCustomer } from '@/services/customerService'
 import { listVehicles } from '@/services/vehicleService'
 import { listServiceOrders } from '@/services/serviceOrderService'
+import type { LoyaltyStatus } from '@/types/loyalty'
 
 export function CustomerDetailPage() {
   const { id = '' } = useParams()
@@ -32,6 +33,10 @@ export function CustomerDetailPage() {
   const customerQuery = useQuery({
     queryKey: ['customer', id],
     queryFn: () => getCustomer(id),
+  })
+  const loyaltyQuery = useQuery({
+    queryKey: ['customer-loyalty', id],
+    queryFn: () => getCustomerLoyalty(id),
   })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const ordersQuery = useQuery({
@@ -132,6 +137,11 @@ export function CustomerDetailPage() {
           </div>
         </div>
       </Card>
+
+      {/* Cartão-fidelidade */}
+      {loyaltyQuery.data?.enabled && (
+        <LoyaltyCard loyalty={loyaltyQuery.data} />
+      )}
 
       {/* Veículos */}
       {customerVehicles.length > 0 && (
@@ -300,5 +310,48 @@ export function CustomerDetailPage() {
         </form>
       </Dialog>
     </div>
+  )
+}
+
+/* ===================== Cartão-fidelidade ===================== */
+function LoyaltyCard({ loyalty }: { loyalty: LoyaltyStatus }) {
+  const { target, stampsInCurrentCard, washesUntilNextReward, rewardsAvailable, rewardPercent } =
+    loyalty
+  const rewardLabel = rewardPercent >= 100 ? 'lavagem grátis' : `${rewardPercent}% de desconto`
+  const dots = Array.from({ length: target })
+
+  return (
+    <Card className="mb-4 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-slate-800 dark:text-slate-100">Cartão-fidelidade</h2>
+        {rewardsAvailable > 0 && (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+            🎉 {rewardsAvailable} prêmio{rewardsAvailable > 1 ? 's' : ''} disponível
+            {rewardsAvailable > 1 ? 'is' : ''}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {dots.map((_, i) => (
+          <span
+            key={i}
+            className={
+              i < stampsInCurrentCard
+                ? 'flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white'
+                : 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-dashed border-slate-300 text-xs text-slate-400 dark:border-slate-600'
+            }
+          >
+            {i < stampsInCurrentCard ? '✓' : i + 1}
+          </span>
+        ))}
+      </div>
+
+      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+        {rewardsAvailable > 0
+          ? `Prêmio: ${rewardLabel}. Aplique na próxima ordem de serviço.`
+          : `Faltam ${washesUntilNextReward} lavagem${washesUntilNextReward > 1 ? 's' : ''} para ${rewardLabel}.`}
+      </p>
+    </Card>
   )
 }

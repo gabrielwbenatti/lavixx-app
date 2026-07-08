@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import type { CustomerRequest, CustomerResponse } from '@/types/customer'
+import type { LoyaltyStatus } from '@/types/loyalty'
 
 export async function listCustomers(): Promise<CustomerResponse[]> {
   const { data } = await api.get<CustomerResponse[]>('/customers')
@@ -26,4 +27,9 @@ export async function updateCustomer(
 
 export async function deleteCustomer(id: string): Promise<void> {
   await api.delete(`/customers/${id}`)
+}
+
+export async function getCustomerLoyalty(id: string): Promise<LoyaltyStatus> {
+  const { data } = await api.get<LoyaltyStatus>(`/customers/${id}/loyalty`)
+  return data
 }

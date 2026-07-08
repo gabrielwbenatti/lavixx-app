@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/lib/toastContext'
@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
+import { CatalogSearch } from '@/components/CatalogSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { formatTime } from '@/lib/datetime'
@@ -37,13 +38,16 @@ import {
   getServiceOrder,
   removeServiceOrderItem,
   removeServiceOrderPayment,
+  removeServiceOrderLoyalty,
+  redeemServiceOrderLoyalty,
   updateServiceOrderItem,
   updateServiceOrderStatus,
   updateServiceOrderTax,
 } from '@/services/serviceOrderService'
 import { listServices } from '@/services/serviceService'
+import { listProducts } from '@/services/productService'
 import { listVehicles } from '@/services/vehicleService'
-import { listCustomers } from '@/services/customerService'
+import { listCustomers, getCustomerLoyalty } from '@/services/customerService'
 import { listPaymentMethods } from '@/services/paymentMethodService'
 import {
   EDITABLE_STATUSES,
@@ -78,11 +82,17 @@ export function OrderDetailPage() {
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
+  const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const paymentMethodsQuery = useQuery({
     queryKey: ['payment-methods'],
     queryFn: listPaymentMethods,
+  })
+  const loyaltyQuery = useQuery({
+    queryKey: ['customer-loyalty', orderQuery.data?.customerId],
+    queryFn: () => getCustomerLoyalty(orderQuery.data!.customerId),
+    enabled: !!orderQuery.data?.customerId,
   })
 
   const addForm = useForm<OrderItemFormInput, unknown, OrderItemFormOutput>({
@@ -98,15 +108,18 @@ export function OrderDetailPage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['service-order', id] })
     queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+    queryClient.invalidateQueries({ queryKey: ['customer-loyalty'] })
   }
 
   const addItemMutation = useMutation({
-    mutationFn: (form: OrderItemFormOutput) =>
-      addServiceOrderItem(id, {
-        serviceId: form.serviceId,
+    mutationFn: (form: OrderItemFormOutput) => {
+      const [kind, refId] = form.catalogRef.split(':')
+      return addServiceOrderItem(id, {
+        ...(kind === 'product' ? { productId: refId } : { serviceId: refId }),
         quantity: form.quantity,
         discount: form.discount,
-      }),
+      })
+    },
     onSuccess: () => {
       invalidate()
       setAddOpen(false)
@@ -182,6 +195,21 @@ export function OrderDetailPage() {
     onError: (err) => setTaxError(getApiErrorMessage(err)),
   })
 
+  const redeemLoyaltyMutation = useMutation({
+    mutationFn: () => redeemServiceOrderLoyalty(id),
+    onSuccess: () => {
+      invalidate()
+      addToast('Prêmio de fidelidade aplicado', 'success')
+    },
+    onError: (err) => setPageError(getApiErrorMessage(err)),
+  })
+
+  const removeLoyaltyMutation = useMutation({
+    mutationFn: () => removeServiceOrderLoyalty(id),
+    onSuccess: invalidate,
+    onError: (err) => setPageError(getApiErrorMessage(err)),
+  })
+
   if (orderQuery.isLoading) {
     return <p className="text-sm text-slate-500">Carregando…</p>
   }
@@ -203,7 +231,7 @@ export function OrderDetailPage() {
 
   const openAdd = () => {
     setItemError(null)
-    addForm.reset({ serviceId: '', quantity: '1', discount: '' })
+    addForm.reset({ catalogRef: '', quantity: '1', discount: '' })
     setAddOpen(true)
   }
 
@@ -326,6 +354,32 @@ export function OrderDetailPage() {
         </div>
       </Card>
 
+      {/* Prêmio de fidelidade disponível */}
+      {loyaltyQuery.data?.enabled &&
+        loyaltyQuery.data.rewardsAvailable > 0 &&
+        order.loyaltyRewardPercent === 0 &&
+        order.status !== 'cancelled' && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+              🎉 Cliente tem prêmio de fidelidade disponível
+              {loyaltyQuery.data.rewardPercent >= 100
+                ? ' (lavagem grátis)'
+                : ` (${loyaltyQuery.data.rewardPercent}% de desconto)`}
+              .
+            </p>
+            <Button
+              className="h-9 px-3"
+              disabled={redeemLoyaltyMutation.isPending}
+              onClick={() => {
+                setPageError(null)
+                redeemLoyaltyMutation.mutate()
+              }}
+            >
+              {redeemLoyaltyMutation.isPending ? 'Aplicando…' : 'Aplicar prêmio'}
+            </Button>
+          </div>
+        )}
+
       {/* Itens */}
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
@@ -408,25 +462,46 @@ export function OrderDetailPage() {
               ))}
             </tbody>
             <tfoot className="bg-slate-50 dark:bg-slate-800/50">
+              {(order.serviceTax > 0 || order.loyaltyRewardPercent > 0) && (
+                <tr>
+                  <td className="px-4 pt-3 text-right text-slate-500" colSpan={4}>
+                    Subtotal
+                  </td>
+                  <td className="px-4 pt-3 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
+                    {formatCurrency(order.subtotal)}
+                  </td>
+                </tr>
+              )}
+              {order.loyaltyRewardPercent > 0 && (
+                <tr>
+                  <td className="px-4 py-1 text-right text-slate-500" colSpan={4}>
+                    <span className="inline-flex items-center gap-2">
+                      Fidelidade ({order.loyaltyRewardPercent}%)
+                      {order.status !== 'cancelled' && (
+                        <button
+                          type="button"
+                          onClick={() => removeLoyaltyMutation.mutate()}
+                          className="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-500 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-4 py-1 text-emerald-700 dark:text-emerald-400" colSpan={editable ? 2 : 1}>
+                    − {formatCurrency(order.loyaltyDiscount)}
+                  </td>
+                </tr>
+              )}
               {order.serviceTax > 0 && (
-                <>
-                  <tr>
-                    <td className="px-4 pt-3 text-right text-slate-500" colSpan={4}>
-                      Subtotal
-                    </td>
-                    <td className="px-4 pt-3 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
-                      {formatCurrency(order.subtotal)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-1 text-right text-slate-500" colSpan={4}>
-                      Taxa de serviço ({order.serviceTax}%)
-                    </td>
-                    <td className="px-4 py-1 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
-                      {formatCurrency(order.taxAmount)}
-                    </td>
-                  </tr>
-                </>
+                <tr>
+                  <td className="px-4 py-1 text-right text-slate-500" colSpan={4}>
+                    Taxa de serviço ({order.serviceTax}%)
+                  </td>
+                  <td className="px-4 py-1 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
+                    {formatCurrency(order.taxAmount)}
+                  </td>
+                </tr>
               )}
               <tr>
                 <td className="px-4 py-3 text-right font-medium text-slate-500" colSpan={4}>
@@ -637,19 +712,22 @@ export function OrderDetailPage() {
           className="flex flex-col gap-4"
           noValidate
         >
-          <Field label="Serviço" htmlFor="serviceId" error={addForm.formState.errors.serviceId?.message}>
-            <Select
-              id="serviceId"
-              invalid={!!addForm.formState.errors.serviceId}
-              {...addForm.register('serviceId')}
-            >
-              <option value="">Selecione…</option>
-              {servicesQuery.data?.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} — {formatCurrency(s.price)}
-                </option>
-              ))}
-            </Select>
+          <Field label="Serviço ou produto" htmlFor="catalogRef" error={addForm.formState.errors.catalogRef?.message}>
+            <Controller
+              control={addForm.control}
+              name="catalogRef"
+              render={({ field }) => (
+                <CatalogSearch
+                  key={addOpen ? 'open' : 'closed'}
+                  services={servicesQuery.data ?? []}
+                  products={productsQuery.data ?? []}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  invalid={!!addForm.formState.errors.catalogRef}
+                  autoFocus
+                />
+              )}
+            />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Quantidade" htmlFor="quantity" error={addForm.formState.errors.quantity?.message}>

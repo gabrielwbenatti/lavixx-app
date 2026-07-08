@@ -27,4 +27,10 @@ export interface TenantResponse {
   operatingHoursEnd: string
   /** Taxa de serviço padrão (%) aplicada a novas ordens. */
   defaultServiceTax: number
+  /** Programa de fidelidade (cartão) habilitado. */
+  loyaltyEnabled: boolean
+  /** Nº de lavagens concluídas para ganhar um prêmio. */
+  loyaltyTarget: number
+  /** Prêmio: % de desconto na OS ao resgatar (100 = grátis). */
+  loyaltyRewardPercent: number
 }

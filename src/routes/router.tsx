@@ -30,6 +30,7 @@ export const router = createBrowserRouter([
           { path: '/veiculos', lazy: lazyRoute(() => import('@/pages/VehiclesPage'), 'VehiclesPage') },
           { path: '/veiculos/:id', lazy: lazyRoute(() => import('@/pages/VehicleDetailPage'), 'VehicleDetailPage') },
           { path: '/servicos', lazy: lazyRoute(() => import('@/pages/ServicesPage'), 'ServicesPage') },
+          { path: '/produtos', lazy: lazyRoute(() => import('@/pages/ProductsPage'), 'ProductsPage') },
           { path: '/formas-pagamento', lazy: lazyRoute(() => import('@/pages/PaymentMethodsPage'), 'PaymentMethodsPage') },
           { path: '/ordens', lazy: lazyRoute(() => import('@/pages/OrdersPage'), 'OrdersPage') },
           { path: '/ordens/:id', lazy: lazyRoute(() => import('@/pages/OrderDetailPage'), 'OrderDetailPage') },

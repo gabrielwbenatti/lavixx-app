@@ -24,7 +24,9 @@ export const STATUS_TRANSITIONS: Record<ServiceStatus, ServiceStatus[]> = {
 export const EDITABLE_STATUSES: ServiceStatus[] = ['waiting', 'in_progress']
 
 export interface ServiceOrderItemRequest {
-  serviceId: string
+  /** Exatamente um: serviceId OU productId. */
+  serviceId?: string
+  productId?: string
   discount?: number
   quantity?: number
 }
@@ -32,6 +34,7 @@ export interface ServiceOrderItemRequest {
 export interface ServiceOrderItemResponse {
   id: string
   serviceId: string | null
+  productId: string | null
   name: string
   unitPrice: number
   discount: number
@@ -50,13 +53,17 @@ export interface ServiceOrderResponse {
   vehicleId: string
   status: ServiceStatus
   items: ServiceOrderItemResponse[]
-  /** Soma dos itens, sem a taxa de serviço. */
+  /** Soma dos itens, sem descontos/taxa. */
   subtotal: number
+  /** Desconto de fidelidade (%) aplicado a esta OS (0 = nenhum). */
+  loyaltyRewardPercent: number
+  /** Valor em R$ do desconto de fidelidade (subtotal × loyaltyRewardPercent / 100). */
+  loyaltyDiscount: number
   /** Taxa de serviço (%) aplicada a esta OS (congelada na criação, ajustável). */
   serviceTax: number
-  /** Valor em R$ da taxa de serviço (subtotal × serviceTax / 100). */
+  /** Valor em R$ da taxa de serviço (sobre o subtotal já com desconto). */
   taxAmount: number
-  /** Total a cobrar (subtotal + taxAmount). */
+  /** Total a cobrar ((subtotal − loyaltyDiscount) + taxAmount). */
   total: number
   payments: PaymentResponse[]
   paidTotal: number

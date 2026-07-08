@@ -10,6 +10,7 @@ import {
   LogOut,
   type LucideIcon,
   Settings,
+  ShoppingBag,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const navItems: { to: string; label: string; icon: LucideIcon; end?: boolean }[]
   { to: '/clientes',         label: 'Clientes',            icon: Users },
   { to: '/veiculos',         label: 'Veículos',            icon: Car },
   { to: '/servicos',         label: 'Serviços',            icon: Wrench },
+  { to: '/produtos',         label: 'Produtos',            icon: ShoppingBag },
   { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
   { to: '/configuracoes',    label: 'Configurações',       icon: Settings },
 ]

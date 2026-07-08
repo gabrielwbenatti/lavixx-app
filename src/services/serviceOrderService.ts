@@ -54,6 +54,16 @@ export async function updateServiceOrderTax(
   return data
 }
 
+export async function redeemServiceOrderLoyalty(id: string): Promise<ServiceOrderResponse> {
+  const { data } = await api.post<ServiceOrderResponse>(`/service-orders/${id}/loyalty-redeem`)
+  return data
+}
+
+export async function removeServiceOrderLoyalty(id: string): Promise<ServiceOrderResponse> {
+  const { data } = await api.delete<ServiceOrderResponse>(`/service-orders/${id}/loyalty-redeem`)
+  return data
+}
+
 export async function addServiceOrderItem(
   orderId: string,
   payload: ServiceOrderItemRequest,

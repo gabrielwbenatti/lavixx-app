@@ -14,8 +14,14 @@ import { normalizePlate } from '@/lib/plate'
 import { listVehicles, createVehicle } from '@/services/vehicleService'
 import { listCustomers, createCustomer } from '@/services/customerService'
 import { listServices } from '@/services/serviceService'
-import { createServiceOrder, updateServiceOrderTax } from '@/services/serviceOrderService'
+import { listProducts } from '@/services/productService'
+import {
+  createServiceOrder,
+  redeemServiceOrderLoyalty,
+  updateServiceOrderTax,
+} from '@/services/serviceOrderService'
 import { getCurrentTenant } from '@/services/tenantService'
+import { getCustomerLoyalty } from '@/services/customerService'
 import {
   VEHICLE_TYPES,
   VEHICLE_TYPE_LABELS,
@@ -26,7 +32,8 @@ import {
 type Step = 'plate' | 'register' | 'services' | 'review' | 'done'
 
 interface CartItem {
-  serviceId: string
+  kind: 'service' | 'product'
+  refId: string
   name: string
   unitPrice: number
   quantity: number
@@ -50,12 +57,19 @@ export function AtendimentoPage() {
   const [customerName, setCustomerName] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [taxEnabled, setTaxEnabled] = useState(true)
+  const [useReward, setUseReward] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
+  const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
   const tenantQuery = useQuery({ queryKey: ['tenant-settings'], queryFn: getCurrentTenant })
+  const loyaltyQuery = useQuery({
+    queryKey: ['customer-loyalty', vehicle?.customerId],
+    queryFn: () => getCustomerLoyalty(vehicle!.customerId),
+    enabled: !!vehicle?.customerId,
+  })
 
   const customerNameById = useMemo(() => {
     const map = new Map<string, string>()
@@ -64,15 +78,21 @@ export function AtendimentoPage() {
   }, [customersQuery.data])
 
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
+  const rewardAvailable = !!loyaltyQuery.data?.enabled && loyaltyQuery.data.rewardsAvailable > 0
+  const rewardPercent = loyaltyQuery.data?.rewardPercent ?? 0
+  const loyaltyPercent = useReward && rewardAvailable ? rewardPercent : 0
+  const loyaltyDiscount = Math.round(cartTotal * loyaltyPercent) / 100
+  const baseTotal = cartTotal - loyaltyDiscount
   const defaultTax = tenantQuery.data?.defaultServiceTax ?? 0
   const effectiveTax = taxEnabled ? defaultTax : 0
-  const taxAmount = Math.round(cartTotal * effectiveTax) / 100
-  const grandTotal = cartTotal + taxAmount
+  const taxAmount = Math.round(baseTotal * effectiveTax) / 100
+  const grandTotal = baseTotal + taxAmount
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] })
     queryClient.invalidateQueries({ queryKey: ['customers'] })
     queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+    queryClient.invalidateQueries({ queryKey: ['customer-loyalty'] })
   }
 
   // ---- Passo 1: busca por placa ----
@@ -91,21 +111,19 @@ export function AtendimentoPage() {
   }
 
   // ---- Passo 3: carrinho de serviços ----
-  const addToCart = (serviceId: string, name: string, unitPrice: number) => {
+  const addToCart = (kind: CartItem['kind'], refId: string, name: string, unitPrice: number) => {
     setCart((prev) => {
-      const found = prev.find((i) => i.serviceId === serviceId)
+      const found = prev.find((i) => i.refId === refId)
       if (found) {
-        return prev.map((i) =>
-          i.serviceId === serviceId ? { ...i, quantity: i.quantity + 1 } : i,
-        )
+        return prev.map((i) => (i.refId === refId ? { ...i, quantity: i.quantity + 1 } : i))
       }
-      return [...prev, { serviceId, name, unitPrice, quantity: 1 }]
+      return [...prev, { kind, refId, name, unitPrice, quantity: 1 }]
     })
   }
-  const changeQty = (serviceId: string, delta: number) => {
+  const changeQty = (refId: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((i) => (i.serviceId === serviceId ? { ...i, quantity: i.quantity + delta } : i))
+        .map((i) => (i.refId === refId ? { ...i, quantity: i.quantity + delta } : i))
         .filter((i) => i.quantity > 0),
     )
   }
@@ -113,14 +131,21 @@ export function AtendimentoPage() {
   // ---- Passo 4: criar OS ----
   const createOrderMutation = useMutation({
     mutationFn: async () => {
-      const order = await createServiceOrder({
+      let order = await createServiceOrder({
         vehicleId: vehicle!.id,
-        items: cart.map((i) => ({ serviceId: i.serviceId, quantity: i.quantity })),
+        items: cart.map((i) => ({
+          ...(i.kind === 'product' ? { productId: i.refId } : { serviceId: i.refId }),
+          quantity: i.quantity,
+        })),
       })
       // A OS herda a taxa padrão do tenant na criação; se o operador optou por
       // zerar (ou o valor difere do padrão), ajusta a taxa da OS recém-criada.
       if (effectiveTax !== defaultTax) {
-        return updateServiceOrderTax(order.id, effectiveTax)
+        order = await updateServiceOrderTax(order.id, effectiveTax)
+      }
+      // Aplica o prêmio de fidelidade, se o operador optou por usá-lo.
+      if (useReward && rewardAvailable) {
+        order = await redeemServiceOrderLoyalty(order.id)
       }
       return order
     },
@@ -138,6 +163,7 @@ export function AtendimentoPage() {
     setCustomerName('')
     setCart([])
     setTaxEnabled(true)
+    setUseReward(false)
     setCreatedOrderId(null)
   }
 
@@ -208,7 +234,8 @@ export function AtendimentoPage() {
         {step === 'services' && (
           <ServicesStep
             services={servicesQuery.data ?? []}
-            isLoading={servicesQuery.isLoading}
+            products={productsQuery.data ?? []}
+            isLoading={servicesQuery.isLoading || productsQuery.isLoading}
             customerName={customerName}
             vehicle={vehicle}
             cart={cart}
@@ -232,6 +259,11 @@ export function AtendimentoPage() {
             taxEnabled={taxEnabled}
             canToggleTax={defaultTax > 0}
             onToggleTax={() => setTaxEnabled((v) => !v)}
+            rewardAvailable={rewardAvailable}
+            rewardPercent={rewardPercent}
+            loyaltyDiscount={loyaltyDiscount}
+            useReward={useReward}
+            onToggleReward={() => setUseReward((v) => !v)}
             submitting={createOrderMutation.isPending}
             error={createOrderMutation.error ? getApiErrorMessage(createOrderMutation.error) : null}
             onBack={() => setStep('services')}
@@ -555,6 +587,7 @@ function RegisterStep({
 /* ========================= Passo 3: Serviços ========================= */
 function ServicesStep({
   services,
+  products,
   isLoading,
   customerName,
   vehicle,
@@ -566,17 +599,45 @@ function ServicesStep({
   onContinue,
 }: {
   services: { id: string; name: string; price: number }[]
+  products: { id: string; name: string; price: number }[]
   isLoading: boolean
   customerName: string
   vehicle: VehicleResponse | null
   cart: CartItem[]
   cartTotal: number
-  addToCart: (serviceId: string, name: string, unitPrice: number) => void
-  changeQty: (serviceId: string, delta: number) => void
+  addToCart: (kind: CartItem['kind'], refId: string, name: string, unitPrice: number) => void
+  changeQty: (refId: string, delta: number) => void
   onBack: () => void
   onContinue: () => void
 }) {
-  const qtyOf = (serviceId: string) => cart.find((i) => i.serviceId === serviceId)?.quantity ?? 0
+  const qtyOf = (refId: string) => cart.find((i) => i.refId === refId)?.quantity ?? 0
+
+  const renderEntry = (kind: CartItem['kind'], e: { id: string; name: string; price: number }) => {
+    const qty = qtyOf(e.id)
+    return (
+      <Card key={`${kind}:${e.id}`} className="flex items-center justify-between p-4">
+        <div>
+          <div className="font-medium text-slate-800 dark:text-slate-100">{e.name}</div>
+          <div className="text-sm text-slate-500">{formatCurrency(e.price)}</div>
+        </div>
+        {qty === 0 ? (
+          <Button className="h-9 px-4" onClick={() => addToCart(kind, e.id, e.name, e.price)}>
+            Adicionar
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="h-9 w-9 px-0" onClick={() => changeQty(e.id, -1)}>
+              −
+            </Button>
+            <span className="w-6 text-center font-medium">{qty}</span>
+            <Button variant="outline" className="h-9 w-9 px-0" onClick={() => changeQty(e.id, 1)}>
+              +
+            </Button>
+          </div>
+        )}
+      </Card>
+    )
+  }
 
   return (
     <div>
@@ -589,43 +650,32 @@ function ServicesStep({
         </span>
       </div>
 
-      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">Escolha os serviços</h1>
+      <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-white">Escolha os itens</h1>
 
       {isLoading && <p className="text-sm text-slate-500">Carregando…</p>}
-      {!isLoading && services.length === 0 && (
+      {!isLoading && services.length === 0 && products.length === 0 && (
         <Card className="p-6 text-center text-sm text-slate-500">
-          Nenhum serviço cadastrado. Cadastre serviços no catálogo primeiro.
+          Nenhum serviço ou produto cadastrado. Cadastre no catálogo primeiro.
         </Card>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {services.map((s) => {
-          const qty = qtyOf(s.id)
-          return (
-            <Card key={s.id} className="flex items-center justify-between p-4">
-              <div>
-                <div className="font-medium text-slate-800 dark:text-slate-100">{s.name}</div>
-                <div className="text-sm text-slate-500">{formatCurrency(s.price)}</div>
-              </div>
-              {qty === 0 ? (
-                <Button className="h-9 px-4" onClick={() => addToCart(s.id, s.name, s.price)}>
-                  Adicionar
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" className="h-9 w-9 px-0" onClick={() => changeQty(s.id, -1)}>
-                    −
-                  </Button>
-                  <span className="w-6 text-center font-medium">{qty}</span>
-                  <Button variant="outline" className="h-9 w-9 px-0" onClick={() => changeQty(s.id, 1)}>
-                    +
-                  </Button>
-                </div>
-              )}
-            </Card>
-          )
-        })}
-      </div>
+      {services.length > 0 && (
+        <>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Serviços</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {services.map((s) => renderEntry('service', s))}
+          </div>
+        </>
+      )}
+
+      {products.length > 0 && (
+        <>
+          <h2 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-slate-400">Produtos</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {products.map((p) => renderEntry('product', p))}
+          </div>
+        </>
+      )}
 
       <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
         <Button variant="outline" onClick={onBack}>
@@ -656,6 +706,11 @@ function ReviewStep({
   taxEnabled,
   canToggleTax,
   onToggleTax,
+  rewardAvailable,
+  rewardPercent,
+  loyaltyDiscount,
+  useReward,
+  onToggleReward,
   submitting,
   error,
   onBack,
@@ -671,6 +726,11 @@ function ReviewStep({
   taxEnabled: boolean
   canToggleTax: boolean
   onToggleTax: () => void
+  rewardAvailable: boolean
+  rewardPercent: number
+  loyaltyDiscount: number
+  useReward: boolean
+  onToggleReward: () => void
   submitting: boolean
   error: string | null
   onBack: () => void
@@ -698,11 +758,26 @@ function ReviewStep({
         </div>
       </Card>
 
+      {rewardAvailable && (
+        <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+            checked={useReward}
+            onChange={onToggleReward}
+          />
+          <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
+            🎉 Usar prêmio de fidelidade
+            {rewardPercent >= 100 ? ' (lavagem grátis)' : ` (${rewardPercent}% de desconto)`}
+          </span>
+        </label>
+      )}
+
       <Card className="mb-6 overflow-hidden">
         <table className="w-full text-sm">
           <tbody>
             {cart.map((i) => (
-              <tr key={i.serviceId} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+              <tr key={i.refId} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
                 <td className="px-4 py-3 text-slate-800 dark:text-slate-100">
                   {i.name} <span className="text-slate-400">× {i.quantity}</span>
                 </td>
@@ -713,32 +788,40 @@ function ReviewStep({
             ))}
           </tbody>
           <tfoot className="bg-slate-50 dark:bg-slate-800/50">
+            {(canToggleTax || (rewardAvailable && useReward)) && (
+              <tr>
+                <td className="px-4 pt-3 text-slate-500">Subtotal</td>
+                <td className="px-4 pt-3 text-right text-slate-700 dark:text-slate-200">
+                  {formatCurrency(cartTotal)}
+                </td>
+              </tr>
+            )}
+            {rewardAvailable && useReward && (
+              <tr>
+                <td className="px-4 py-1 text-slate-500">Fidelidade ({rewardPercent}%)</td>
+                <td className="px-4 py-1 text-right text-emerald-700 dark:text-emerald-400">
+                  − {formatCurrency(loyaltyDiscount)}
+                </td>
+              </tr>
+            )}
             {canToggleTax && (
-              <>
-                <tr>
-                  <td className="px-4 pt-3 text-slate-500">Subtotal</td>
-                  <td className="px-4 pt-3 text-right text-slate-700 dark:text-slate-200">
-                    {formatCurrency(cartTotal)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-1 text-slate-500">
-                    <span className="flex items-center gap-2">
-                      Taxa de serviço{taxEnabled ? ` (${taxRate}%)` : ''}
-                      <button
-                        type="button"
-                        onClick={onToggleTax}
-                        className="rounded-md border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                      >
-                        {taxEnabled ? 'Remover' : 'Aplicar'}
-                      </button>
-                    </span>
-                  </td>
-                  <td className="px-4 py-1 text-right text-slate-700 dark:text-slate-200">
-                    {taxEnabled ? formatCurrency(taxAmount) : '—'}
-                  </td>
-                </tr>
-              </>
+              <tr>
+                <td className="px-4 py-1 text-slate-500">
+                  <span className="flex items-center gap-2">
+                    Taxa de serviço{taxEnabled ? ` (${taxRate}%)` : ''}
+                    <button
+                      type="button"
+                      onClick={onToggleTax}
+                      className="rounded-md border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      {taxEnabled ? 'Remover' : 'Aplicar'}
+                    </button>
+                  </span>
+                </td>
+                <td className="px-4 py-1 text-right text-slate-700 dark:text-slate-200">
+                  {taxEnabled ? formatCurrency(taxAmount) : '—'}
+                </td>
+              </tr>
             )}
             <tr>
               <td className="px-4 py-3 font-medium text-slate-500">Total</td>

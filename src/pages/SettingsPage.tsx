@@ -21,6 +21,9 @@ interface TenantResponse {
   operatingHoursStart: string
   operatingHoursEnd: string
   defaultServiceTax: number
+  loyaltyEnabled: boolean
+  loyaltyTarget: number
+  loyaltyRewardPercent: number
 }
 
 const settingsSchema = z.object({
@@ -31,6 +34,15 @@ const settingsSchema = z.object({
     .string()
     .regex(/^\d+([.,]\d{1,2})?$/, 'Formato: 0 a 100')
     .refine((v) => Number(v.replace(',', '.')) <= 100, 'A taxa não pode passar de 100%'),
+  loyaltyEnabled: z.boolean(),
+  loyaltyTarget: z
+    .string()
+    .regex(/^\d+$/, 'Número inteiro')
+    .refine((v) => Number(v) >= 1, 'Mínimo 1 lavagem'),
+  loyaltyRewardPercent: z
+    .string()
+    .regex(/^\d+([.,]\d{1,2})?$/, 'Formato: 0 a 100')
+    .refine((v) => Number(v.replace(',', '.')) <= 100, 'Máximo 100%'),
 })
 
 type SettingsForm = z.infer<typeof settingsSchema>
@@ -44,6 +56,8 @@ async function updateTenantSettings(settings: SettingsForm): Promise<TenantRespo
   const { data } = await api.patch<TenantResponse>('/tenants/me', {
     ...settings,
     defaultServiceTax: parseFloat(settings.defaultServiceTax.replace(',', '.')),
+    loyaltyTarget: parseInt(settings.loyaltyTarget, 10),
+    loyaltyRewardPercent: parseFloat(settings.loyaltyRewardPercent.replace(',', '.')),
   })
   return data
 }
@@ -57,13 +71,16 @@ export function SettingsPage() {
     queryFn: getTenantSettings,
   })
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<SettingsForm>({
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm<SettingsForm>({
     resolver: zodResolver(settingsSchema),
     values: tenantQuery.data ? {
       name: tenantQuery.data.name,
       operatingHoursStart: tenantQuery.data.operatingHoursStart || '08:00',
       operatingHoursEnd: tenantQuery.data.operatingHoursEnd || '18:00',
       defaultServiceTax: String(tenantQuery.data.defaultServiceTax || 0),
+      loyaltyEnabled: tenantQuery.data.loyaltyEnabled ?? false,
+      loyaltyTarget: String(tenantQuery.data.loyaltyTarget || 10),
+      loyaltyRewardPercent: String(tenantQuery.data.loyaltyRewardPercent ?? 100),
     } : undefined,
   })
 
@@ -153,6 +170,56 @@ export function SettingsPage() {
               {...register('defaultServiceTax')}
             />
           </Field>
+
+          {/* Fidelidade */}
+          <div className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                {...register('loyaltyEnabled')}
+              />
+              <span className="font-medium text-slate-800 dark:text-slate-100">
+                Programa de fidelidade (cartão)
+              </span>
+            </label>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              A cada N lavagens concluídas, o cliente ganha um prêmio de desconto.
+            </p>
+
+            {watch('loyaltyEnabled') && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Lavagens para o prêmio"
+                  htmlFor="loyaltyTarget"
+                  error={errors.loyaltyTarget?.message}
+                  hint="Ex.: 10 lavagens"
+                >
+                  <Input
+                    id="loyaltyTarget"
+                    inputMode="numeric"
+                    placeholder="10"
+                    invalid={!!errors.loyaltyTarget}
+                    {...register('loyaltyTarget')}
+                  />
+                </Field>
+                <Field
+                  label="Prêmio: desconto (%)"
+                  htmlFor="loyaltyRewardPercent"
+                  error={errors.loyaltyRewardPercent?.message}
+                  hint="100 = lavagem grátis"
+                >
+                  <Input
+                    id="loyaltyRewardPercent"
+                    inputMode="decimal"
+                    placeholder="100"
+                    invalid={!!errors.loyaltyRewardPercent}
+                    {...register('loyaltyRewardPercent')}
+                  />
+                </Field>
+              </div>
+            )}
+          </div>
 
           <div className="mt-4 flex justify-end gap-2">
             <Button
