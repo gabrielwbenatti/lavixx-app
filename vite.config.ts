@@ -14,12 +14,22 @@ export default defineConfig({
   server: {
     port: 5173,
     // Proxy: chamadas do front para /api sao redirecionadas para a API Spring (dev).
+    // A API responde sob o prefixo /api (ver WebConfig), entao NAO reescrevemos o path.
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
-})
+  // Mesmo proxy para `npm run preview` (que serve o build de producao localmente).
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
+});
