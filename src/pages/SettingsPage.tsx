@@ -27,7 +27,10 @@ const settingsSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório').max(150),
   operatingHoursStart: z.string().regex(/^\d{2}:\d{2}$/, 'Formato: HH:mm'),
   operatingHoursEnd: z.string().regex(/^\d{2}:\d{2}$/, 'Formato: HH:mm'),
-  defaultServiceTax: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Formato: 0.00'),
+  defaultServiceTax: z
+    .string()
+    .regex(/^\d+([.,]\d{1,2})?$/, 'Formato: 0 a 100')
+    .refine((v) => Number(v.replace(',', '.')) <= 100, 'A taxa não pode passar de 100%'),
 })
 
 type SettingsForm = z.infer<typeof settingsSchema>
@@ -40,7 +43,7 @@ async function getTenantSettings(): Promise<TenantResponse> {
 async function updateTenantSettings(settings: SettingsForm): Promise<TenantResponse> {
   const { data } = await api.patch<TenantResponse>('/tenants/me', {
     ...settings,
-    defaultServiceTax: parseFloat(settings.defaultServiceTax),
+    defaultServiceTax: parseFloat(settings.defaultServiceTax.replace(',', '.')),
   })
   return data
 }
@@ -137,15 +140,15 @@ export function SettingsPage() {
           </div>
 
           <Field
-            label="Taxa de serviço padrão (R$)"
+            label="Taxa de serviço padrão (%)"
             htmlFor="defaultServiceTax"
             error={errors.defaultServiceTax?.message}
-            hint="Aplicada automaticamente em novos serviços"
+            hint="Percentual aplicado sobre o total de cada nova ordem (pode ser ajustado/zerado por ordem)"
           >
             <Input
               id="defaultServiceTax"
               inputMode="decimal"
-              placeholder="0.00"
+              placeholder="0"
               invalid={!!errors.defaultServiceTax}
               {...register('defaultServiceTax')}
             />

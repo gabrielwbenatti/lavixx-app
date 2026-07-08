@@ -50,6 +50,13 @@ export interface ServiceOrderResponse {
   vehicleId: string
   status: ServiceStatus
   items: ServiceOrderItemResponse[]
+  /** Soma dos itens, sem a taxa de serviço. */
+  subtotal: number
+  /** Taxa de serviço (%) aplicada a esta OS (congelada na criação, ajustável). */
+  serviceTax: number
+  /** Valor em R$ da taxa de serviço (subtotal × serviceTax / 100). */
+  taxAmount: number
+  /** Total a cobrar (subtotal + taxAmount). */
   total: number
   payments: PaymentResponse[]
   paidTotal: number

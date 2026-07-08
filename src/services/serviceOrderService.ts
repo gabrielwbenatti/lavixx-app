@@ -44,6 +44,16 @@ export async function updateServiceOrderStatus(
   return data
 }
 
+export async function updateServiceOrderTax(
+  id: string,
+  serviceTax: number,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/tax`, {
+    serviceTax,
+  })
+  return data
+}
+
 export async function addServiceOrderItem(
   orderId: string,
   payload: ServiceOrderItemRequest,

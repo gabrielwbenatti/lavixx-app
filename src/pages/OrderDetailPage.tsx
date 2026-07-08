@@ -39,6 +39,7 @@ import {
   removeServiceOrderPayment,
   updateServiceOrderItem,
   updateServiceOrderStatus,
+  updateServiceOrderTax,
 } from '@/services/serviceOrderService'
 import { listServices } from '@/services/serviceService'
 import { listVehicles } from '@/services/vehicleService'
@@ -71,6 +72,9 @@ export function OrderDetailPage() {
   const [pageError, setPageError] = useState<string | null>(null)
   const [payOpen, setPayOpen] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
+  const [taxOpen, setTaxOpen] = useState(false)
+  const [taxValue, setTaxValue] = useState('')
+  const [taxError, setTaxError] = useState<string | null>(null)
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
@@ -168,6 +172,16 @@ export function OrderDetailPage() {
     onError: (err) => window.alert(getApiErrorMessage(err)),
   })
 
+  const taxMutation = useMutation({
+    mutationFn: (serviceTax: number) => updateServiceOrderTax(id, serviceTax),
+    onSuccess: () => {
+      invalidate()
+      setTaxOpen(false)
+      addToast('Taxa de serviço atualizada', 'success')
+    },
+    onError: (err) => setTaxError(getApiErrorMessage(err)),
+  })
+
   if (orderQuery.isLoading) {
     return <p className="text-sm text-slate-500">Carregando…</p>
   }
@@ -227,6 +241,24 @@ export function OrderDetailPage() {
     if (window.confirm(`Remover o pagamento de ${formatCurrency(payment.amount)} (${payment.methodName})?`)) {
       removePaymentMutation.mutate(payment.id)
     }
+  }
+
+  const canEditTax = order.status !== 'cancelled'
+
+  const openTax = () => {
+    setTaxError(null)
+    setTaxValue(String(order.serviceTax ?? 0))
+    setTaxOpen(true)
+  }
+
+  const submitTax = () => {
+    const parsed = Number(taxValue.replace(',', '.'))
+    if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
+      setTaxError('Informe uma taxa entre 0 e 100')
+      return
+    }
+    setTaxError(null)
+    taxMutation.mutate(parsed)
   }
 
   return (
@@ -298,11 +330,18 @@ export function OrderDetailPage() {
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
           <h2 className="font-semibold text-slate-800 dark:text-slate-100">Itens</h2>
-          {editable && (
-            <Button className="h-9 px-3" onClick={openAdd}>
-              Adicionar item
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {canEditTax && (
+              <Button variant="outline" className="h-9 px-3" onClick={openTax}>
+                {order.serviceTax > 0 ? `Taxa ${order.serviceTax}%` : 'Adicionar taxa'}
+              </Button>
+            )}
+            {editable && (
+              <Button className="h-9 px-3" onClick={openAdd}>
+                Adicionar item
+              </Button>
+            )}
+          </div>
         </div>
 
         {order.items.length === 0 ? (
@@ -368,12 +407,29 @@ export function OrderDetailPage() {
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="bg-slate-50 dark:bg-slate-800/50">
-                <td
-                  className="px-4 py-3 text-right font-medium text-slate-500"
-                  colSpan={editable ? 4 : 4}
-                >
+            <tfoot className="bg-slate-50 dark:bg-slate-800/50">
+              {order.serviceTax > 0 && (
+                <>
+                  <tr>
+                    <td className="px-4 pt-3 text-right text-slate-500" colSpan={4}>
+                      Subtotal
+                    </td>
+                    <td className="px-4 pt-3 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
+                      {formatCurrency(order.subtotal)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-1 text-right text-slate-500" colSpan={4}>
+                      Taxa de serviço ({order.serviceTax}%)
+                    </td>
+                    <td className="px-4 py-1 text-slate-700 dark:text-slate-200" colSpan={editable ? 2 : 1}>
+                      {formatCurrency(order.taxAmount)}
+                    </td>
+                  </tr>
+                </>
+              )}
+              <tr>
+                <td className="px-4 py-3 text-right font-medium text-slate-500" colSpan={4}>
                   Total
                 </td>
                 <td
@@ -457,6 +513,57 @@ export function OrderDetailPage() {
           </ul>
         )}
       </Card>
+
+      {/* Dialog: ajustar taxa de serviço */}
+      <Dialog
+        open={taxOpen}
+        onClose={() => setTaxOpen(false)}
+        title="Taxa de serviço"
+        description="Percentual aplicado sobre o subtotal desta ordem. Deixe 0 para não cobrar taxa."
+      >
+        {taxError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {taxError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitTax()
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Field label="Taxa (%)" htmlFor="serviceTax">
+            <Input
+              id="serviceTax"
+              inputMode="decimal"
+              placeholder="0"
+              value={taxValue}
+              onChange={(e) => setTaxValue(e.target.value)}
+            />
+          </Field>
+          <div className="mt-2 flex justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+              disabled={taxMutation.isPending}
+              onClick={() => taxMutation.mutate(0)}
+            >
+              Remover taxa
+            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setTaxOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={taxMutation.isPending}>
+                {taxMutation.isPending ? 'Salvando…' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Dialog>
 
       {/* Dialog: registrar pagamento */}
       <Dialog open={payOpen} onClose={() => setPayOpen(false)} title="Registrar pagamento">

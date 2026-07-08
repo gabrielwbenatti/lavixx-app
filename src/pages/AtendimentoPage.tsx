@@ -14,7 +14,8 @@ import { normalizePlate } from '@/lib/plate'
 import { listVehicles, createVehicle } from '@/services/vehicleService'
 import { listCustomers, createCustomer } from '@/services/customerService'
 import { listServices } from '@/services/serviceService'
-import { createServiceOrder } from '@/services/serviceOrderService'
+import { createServiceOrder, updateServiceOrderTax } from '@/services/serviceOrderService'
+import { getCurrentTenant } from '@/services/tenantService'
 import {
   VEHICLE_TYPES,
   VEHICLE_TYPE_LABELS,
@@ -48,11 +49,13 @@ export function AtendimentoPage() {
   const [vehicle, setVehicle] = useState<VehicleResponse | null>(null)
   const [customerName, setCustomerName] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
+  const [taxEnabled, setTaxEnabled] = useState(true)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
+  const tenantQuery = useQuery({ queryKey: ['tenant-settings'], queryFn: getCurrentTenant })
 
   const customerNameById = useMemo(() => {
     const map = new Map<string, string>()
@@ -61,6 +64,10 @@ export function AtendimentoPage() {
   }, [customersQuery.data])
 
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
+  const defaultTax = tenantQuery.data?.defaultServiceTax ?? 0
+  const effectiveTax = taxEnabled ? defaultTax : 0
+  const taxAmount = Math.round(cartTotal * effectiveTax) / 100
+  const grandTotal = cartTotal + taxAmount
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['vehicles'] })
@@ -105,11 +112,18 @@ export function AtendimentoPage() {
 
   // ---- Passo 4: criar OS ----
   const createOrderMutation = useMutation({
-    mutationFn: () =>
-      createServiceOrder({
+    mutationFn: async () => {
+      const order = await createServiceOrder({
         vehicleId: vehicle!.id,
         items: cart.map((i) => ({ serviceId: i.serviceId, quantity: i.quantity })),
-      }),
+      })
+      // A OS herda a taxa padrão do tenant na criação; se o operador optou por
+      // zerar (ou o valor difere do padrão), ajusta a taxa da OS recém-criada.
+      if (effectiveTax !== defaultTax) {
+        return updateServiceOrderTax(order.id, effectiveTax)
+      }
+      return order
+    },
     onSuccess: (order) => {
       invalidateAll()
       setCreatedOrderId(order.id)
@@ -123,6 +137,7 @@ export function AtendimentoPage() {
     setVehicle(null)
     setCustomerName('')
     setCart([])
+    setTaxEnabled(true)
     setCreatedOrderId(null)
   }
 
@@ -211,6 +226,12 @@ export function AtendimentoPage() {
             vehicle={vehicle}
             cart={cart}
             cartTotal={cartTotal}
+            taxRate={effectiveTax}
+            taxAmount={taxAmount}
+            grandTotal={grandTotal}
+            taxEnabled={taxEnabled}
+            canToggleTax={defaultTax > 0}
+            onToggleTax={() => setTaxEnabled((v) => !v)}
             submitting={createOrderMutation.isPending}
             error={createOrderMutation.error ? getApiErrorMessage(createOrderMutation.error) : null}
             onBack={() => setStep('services')}
@@ -220,7 +241,7 @@ export function AtendimentoPage() {
 
         {step === 'done' && (
           <DoneStep
-            total={cartTotal}
+            total={grandTotal}
             onNew={restart}
             onView={() => createdOrderId && navigate(`/ordens/${createdOrderId}`)}
           />
@@ -629,6 +650,12 @@ function ReviewStep({
   vehicle,
   cart,
   cartTotal,
+  taxRate,
+  taxAmount,
+  grandTotal,
+  taxEnabled,
+  canToggleTax,
+  onToggleTax,
   submitting,
   error,
   onBack,
@@ -638,6 +665,12 @@ function ReviewStep({
   vehicle: VehicleResponse | null
   cart: CartItem[]
   cartTotal: number
+  taxRate: number
+  taxAmount: number
+  grandTotal: number
+  taxEnabled: boolean
+  canToggleTax: boolean
+  onToggleTax: () => void
   submitting: boolean
   error: string | null
   onBack: () => void
@@ -679,11 +712,38 @@ function ReviewStep({
               </tr>
             ))}
           </tbody>
-          <tfoot>
-            <tr className="bg-slate-50 dark:bg-slate-800/50">
+          <tfoot className="bg-slate-50 dark:bg-slate-800/50">
+            {canToggleTax && (
+              <>
+                <tr>
+                  <td className="px-4 pt-3 text-slate-500">Subtotal</td>
+                  <td className="px-4 pt-3 text-right text-slate-700 dark:text-slate-200">
+                    {formatCurrency(cartTotal)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-1 text-slate-500">
+                    <span className="flex items-center gap-2">
+                      Taxa de serviço{taxEnabled ? ` (${taxRate}%)` : ''}
+                      <button
+                        type="button"
+                        onClick={onToggleTax}
+                        className="rounded-md border border-slate-300 px-2 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                      >
+                        {taxEnabled ? 'Remover' : 'Aplicar'}
+                      </button>
+                    </span>
+                  </td>
+                  <td className="px-4 py-1 text-right text-slate-700 dark:text-slate-200">
+                    {taxEnabled ? formatCurrency(taxAmount) : '—'}
+                  </td>
+                </tr>
+              </>
+            )}
+            <tr>
               <td className="px-4 py-3 font-medium text-slate-500">Total</td>
               <td className="px-4 py-3 text-right text-lg font-bold text-slate-900 dark:text-white">
-                {formatCurrency(cartTotal)}
+                {formatCurrency(grandTotal)}
               </td>
             </tr>
           </tfoot>

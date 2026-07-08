@@ -17,3 +17,14 @@ export interface TenantRegistrationResponse {
   adminEmail: string
   token: string
 }
+
+/** Resposta de GET/PATCH /tenants/me (TenantResponse). */
+export interface TenantResponse {
+  id: string
+  name: string
+  document: string
+  operatingHoursStart: string
+  operatingHoursEnd: string
+  /** Taxa de serviço padrão (%) aplicada a novas ordens. */
+  defaultServiceTax: number
+}
