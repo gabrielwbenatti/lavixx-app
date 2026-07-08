@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/lib/toastContext'
+import { formatDocument } from '@/lib/format'
 
 const api = (await import('@/lib/api')).api
 
@@ -171,7 +172,7 @@ export function SettingsPage() {
         <dl className="mt-3 space-y-2 text-sm text-amber-800 dark:text-amber-300">
           <div className="flex justify-between">
             <dt>CNPJ/CPF:</dt>
-            <dd className="font-mono">{tenantQuery.data?.document}</dd>
+            <dd className="font-mono">{formatDocument(tenantQuery.data?.document)}</dd>
           </div>
           <div className="flex justify-between">
             <dt>ID do estabelecimento:</dt>
