@@ -12,6 +12,7 @@ import {
   Receipt,
   Settings,
   ShoppingBag,
+  UserCog,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ const navItems: { to: string; label: string; icon: LucideIcon; end?: boolean }[]
   { to: '/servicos',         label: 'Serviços',            icon: Wrench },
   { to: '/produtos',         label: 'Produtos',            icon: ShoppingBag },
   { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
+  { to: '/usuarios',         label: 'Usuários',            icon: UserCog },
   { to: '/configuracoes',    label: 'Configurações',       icon: Settings },
 ]
 

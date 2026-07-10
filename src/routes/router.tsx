@@ -14,6 +14,7 @@ export const router = createBrowserRouter([
   { path: '/', lazy: lazyRoute(() => import('@/pages/LandingPage'), 'LandingPage') },
   { path: '/registrar', lazy: lazyRoute(() => import('@/pages/RegisterPage'), 'RegisterPage') },
   { path: '/login', lazy: lazyRoute(() => import('@/pages/LoginPage'), 'LoginPage') },
+  { path: '/definir-senha', lazy: lazyRoute(() => import('@/pages/AcceptInvitePage'), 'AcceptInvitePage') },
   {
     element: <ProtectedRoute />,
     children: [
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/formas-pagamento', lazy: lazyRoute(() => import('@/pages/PaymentMethodsPage'), 'PaymentMethodsPage') },
           { path: '/ordens', lazy: lazyRoute(() => import('@/pages/OrdersPage'), 'OrdersPage') },
           { path: '/ordens/:id', lazy: lazyRoute(() => import('@/pages/OrderDetailPage'), 'OrderDetailPage') },
+          { path: '/usuarios', lazy: lazyRoute(() => import('@/pages/UsersPage'), 'UsersPage') },
           { path: '/configuracoes', lazy: lazyRoute(() => import('@/pages/SettingsPage'), 'SettingsPage') },
         ],
       },
