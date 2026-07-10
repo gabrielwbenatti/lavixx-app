@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -167,6 +168,49 @@ export function AtendimentoPage() {
     setCreatedOrderId(null)
   }
 
+  // Sem nada vendável (nenhum serviço nem produto) não há como abrir uma OS —
+  // trava o atendimento. (Só bloqueia depois que as duas listas carregam.)
+  const catalogEmpty =
+    servicesQuery.isSuccess &&
+    productsQuery.isSuccess &&
+    servicesQuery.data.length === 0 &&
+    productsQuery.data.length === 0
+  if (catalogEmpty) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+          <span className="text-lg font-bold text-slate-900 dark:text-white">
+            Lavixx · Atendimento
+          </span>
+          <Button variant="ghost" onClick={() => navigate('/home')}>
+            Sair do atendimento
+          </Button>
+        </header>
+        <main className="mx-auto max-w-lg px-6 py-20 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+            <Wrench size={28} strokeWidth={1.75} />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold text-slate-900 dark:text-white">
+            Cadastre um serviço ou produto
+          </h1>
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            O atendimento rápido precisa de pelo menos um serviço ou produto no catálogo para
+            abrir uma ordem. Cadastre um e volte aqui.
+          </p>
+          <div className="mx-auto mt-8 flex max-w-xs flex-col gap-3">
+            <Button onClick={() => navigate('/servicos')}>Cadastrar serviço</Button>
+            <Button variant="outline" onClick={() => navigate('/produtos')}>
+              Cadastrar produto
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/home')}>
+              Voltar ao início
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Topo */}
@@ -304,7 +348,7 @@ function PlateStep({
 
   return (
     <div className="text-center">
-      <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Bem-vindo! 🚗</h1>
+      <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Bem-vindo! {'\u{1F697}'}</h1>
       <p className="mt-2 text-slate-500 dark:text-slate-400">Digite a placa do veículo para começar.</p>
 
       <Input
@@ -767,7 +811,7 @@ function ReviewStep({
             onChange={onToggleReward}
           />
           <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
-            🎉 Usar prêmio de fidelidade
+            {'\u{1F389}'} Usar prêmio de fidelidade
             {rewardPercent >= 100 ? ' (lavagem grátis)' : ` (${rewardPercent}% de desconto)`}
           </span>
         </label>
@@ -857,7 +901,7 @@ function DoneStep({
 }) {
   return (
     <div className="mt-10 text-center">
-      <div className="text-6xl">✅</div>
+      <div className="text-6xl">{'\u{2705}'}</div>
       <h1 className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">Ordem criada!</h1>
       <p className="mt-2 text-slate-500 dark:text-slate-400">
         Total do atendimento: <span className="font-bold">{formatCurrency(total)}</span>
