@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Textarea } from '@/components/ui/Textarea'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
@@ -43,6 +44,7 @@ import {
   removeServiceOrderLoyalty,
   redeemServiceOrderLoyalty,
   updateServiceOrderItem,
+  updateServiceOrderObservations,
   updateServiceOrderStatus,
   updateServiceOrderTax,
 } from '@/services/serviceOrderService'
@@ -82,6 +84,9 @@ export function OrderDetailPage() {
   const [taxOpen, setTaxOpen] = useState(false)
   const [taxValue, setTaxValue] = useState('')
   const [taxError, setTaxError] = useState<string | null>(null)
+  const [obsOpen, setObsOpen] = useState(false)
+  const [obsValue, setObsValue] = useState('')
+  const [obsError, setObsError] = useState<string | null>(null)
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
@@ -199,6 +204,16 @@ export function OrderDetailPage() {
     onError: (err) => setTaxError(getApiErrorMessage(err)),
   })
 
+  const obsMutation = useMutation({
+    mutationFn: (observations: string) => updateServiceOrderObservations(id, observations),
+    onSuccess: () => {
+      invalidate()
+      setObsOpen(false)
+      addToast('Observações atualizadas', 'success')
+    },
+    onError: (err) => setObsError(getApiErrorMessage(err)),
+  })
+
   const redeemLoyaltyMutation = useMutation({
     mutationFn: () => redeemServiceOrderLoyalty(id),
     onSuccess: () => {
@@ -293,6 +308,12 @@ export function OrderDetailPage() {
     setTaxError(null)
     setTaxValue(String(order.serviceTax ?? 0))
     setTaxOpen(true)
+  }
+
+  const openObs = () => {
+    setObsError(null)
+    setObsValue(order.observations ?? '')
+    setObsOpen(true)
   }
 
   const submitTax = () => {
@@ -406,6 +427,23 @@ export function OrderDetailPage() {
             </Button>
           </div>
         )}
+
+      {/* Observações */}
+      <Card className="mb-4 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-100">Observações</h2>
+          <Button variant="outline" className="h-9 px-3" onClick={openObs}>
+            {order.observations ? 'Editar' : 'Adicionar'}
+          </Button>
+        </div>
+        {order.observations ? (
+          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+            {order.observations}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-slate-400">Nenhuma observação registrada.</p>
+        )}
+      </Card>
 
       {/* Itens */}
       <Card className="overflow-hidden">
@@ -663,6 +701,46 @@ export function OrderDetailPage() {
                 {taxMutation.isPending ? 'Salvando…' : 'Salvar'}
               </Button>
             </div>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Dialog: observações */}
+      <Dialog
+        open={obsOpen}
+        onClose={() => setObsOpen(false)}
+        title="Observações"
+        description="Anotações livres sobre esta ordem (avarias, pedidos do cliente, etc.)."
+      >
+        {obsError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {obsError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            setObsError(null)
+            obsMutation.mutate(obsValue)
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Textarea
+            autoFocus
+            rows={4}
+            maxLength={1000}
+            placeholder="Ex.: Riscado no para-choque; cliente pediu cuidado com o vidro."
+            value={obsValue}
+            onChange={(e) => setObsValue(e.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setObsOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={obsMutation.isPending}>
+              {obsMutation.isPending ? 'Salvando…' : 'Salvar'}
+            </Button>
           </div>
         </form>
       </Dialog>

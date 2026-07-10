@@ -45,6 +45,7 @@ export interface ServiceOrderItemResponse {
 export interface ServiceOrderRequest {
   vehicleId: string
   items?: ServiceOrderItemRequest[]
+  observations?: string
 }
 
 export interface ServiceOrderResponse {
@@ -68,6 +69,7 @@ export interface ServiceOrderResponse {
   payments: PaymentResponse[]
   paidTotal: number
   paymentStatus: PaymentStatus
+  observations: string | null
   createdAt: string
   updatedAt: string
   finishedAt: string | null

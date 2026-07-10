@@ -54,6 +54,16 @@ export async function updateServiceOrderTax(
   return data
 }
 
+export async function updateServiceOrderObservations(
+  id: string,
+  observations: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/observations`, {
+    observations,
+  })
+  return data
+}
+
 export async function redeemServiceOrderLoyalty(id: string): Promise<ServiceOrderResponse> {
   const { data } = await api.post<ServiceOrderResponse>(`/service-orders/${id}/loyalty-redeem`)
   return data
