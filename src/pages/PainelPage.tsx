@@ -5,15 +5,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { isToday, formatTime, timeAgo } from '@/lib/datetime'
+import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import { listServiceOrders, updateServiceOrderStatus } from '@/services/serviceOrderService'
 import { listVehicles } from '@/services/vehicleService'
 import { listCustomers } from '@/services/customerService'
+import { getCurrentTenant } from '@/services/tenantService'
 import type { ServiceOrderResponse, ServiceStatus } from '@/types/serviceOrder'
 import type { VehicleResponse } from '@/types/vehicle'
+import type { CustomerResponse } from '@/types/customer'
 
 /** Ação principal (próximo passo) de cada status, mostrada no cartão. */
 const NEXT_ACTION: Partial<Record<ServiceStatus, { label: string; target: ServiceStatus }>> = {
@@ -32,10 +36,11 @@ export function PainelPage() {
   })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  const tenantQuery = useQuery({ queryKey: ['tenant-me'], queryFn: getCurrentTenant })
 
-  const customerNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c.name))
+  const customerById = useMemo(() => {
+    const map = new Map<string, CustomerResponse>()
+    customersQuery.data?.forEach((c) => map.set(c.id, c))
     return map
   }, [customersQuery.data])
 
@@ -100,7 +105,7 @@ export function PainelPage() {
               key={o.id}
               order={o}
               vehicle={vehicleById.get(o.vehicleId)}
-              customerName={customerNameById.get(o.customerId)}
+              customerName={customerById.get(o.customerId)?.name}
               onOpen={() => navigate(`/ordens/${o.id}`)}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
@@ -115,7 +120,7 @@ export function PainelPage() {
               key={o.id}
               order={o}
               vehicle={vehicleById.get(o.vehicleId)}
-              customerName={customerNameById.get(o.customerId)}
+              customerName={customerById.get(o.customerId)?.name}
               onOpen={() => navigate(`/ordens/${o.id}`)}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
@@ -125,15 +130,26 @@ export function PainelPage() {
         </Column>
 
         <Column title="Concluídas hoje" count={doneToday.length} tone="green">
-          {doneToday.map((o) => (
-            <OrderCard
-              key={o.id}
-              order={o}
-              vehicle={vehicleById.get(o.vehicleId)}
-              customerName={customerNameById.get(o.customerId)}
-              onOpen={() => navigate(`/ordens/${o.id}`)}
-            />
-          ))}
+          {doneToday.map((o) => {
+            const customer = customerById.get(o.customerId)
+            const vehicle = vehicleById.get(o.vehicleId)
+            return (
+              <OrderCard
+                key={o.id}
+                order={o}
+                vehicle={vehicle}
+                customerName={customer?.name}
+                onOpen={() => navigate(`/ordens/${o.id}`)}
+                whatsappLink={buildCarReadyWhatsAppLink({
+                  phone: customer?.phone,
+                  customerName: customer?.name,
+                  vehicle,
+                  establishmentName: tenantQuery.data?.name,
+                  items: o.items,
+                })}
+              />
+            )
+          })}
           {doneToday.length === 0 && <EmptyHint text="Nenhuma concluída hoje ainda." />}
         </Column>
       </div>
@@ -196,6 +212,7 @@ function OrderCard({
   onOpen,
   onAction,
   actionPending,
+  whatsappLink,
 }: {
   order: ServiceOrderResponse
   vehicle?: VehicleResponse
@@ -203,6 +220,7 @@ function OrderCard({
   onOpen: () => void
   onAction?: (status: ServiceStatus) => void
   actionPending?: boolean
+  whatsappLink?: string | null
 }) {
   const next = NEXT_ACTION[order.status]
   return (
@@ -242,6 +260,18 @@ function OrderCard({
         >
           {next.label}
         </Button>
+      )}
+
+      {whatsappLink && (
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+        >
+          <WhatsAppIcon className="h-3.5 w-3.5" />
+          Avisar cliente
+        </a>
       )}
     </Card>
   )

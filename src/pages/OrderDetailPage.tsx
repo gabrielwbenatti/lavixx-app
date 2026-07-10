@@ -13,11 +13,13 @@ import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CatalogSearch } from '@/components/CatalogSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { formatTime } from '@/lib/datetime'
 import { describeVehicle } from '@/lib/describe'
+import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import {
   orderItemSchema,
   editItemSchema,
@@ -49,6 +51,7 @@ import { listProducts } from '@/services/productService'
 import { listVehicles } from '@/services/vehicleService'
 import { listCustomers, getCustomerLoyalty } from '@/services/customerService'
 import { listPaymentMethods } from '@/services/paymentMethodService'
+import { getCurrentTenant } from '@/services/tenantService'
 import {
   EDITABLE_STATUSES,
   SERVICE_STATUS_LABELS,
@@ -89,6 +92,7 @@ export function OrderDetailPage() {
     queryKey: ['payment-methods'],
     queryFn: listPaymentMethods,
   })
+  const tenantQuery = useQuery({ queryKey: ['tenant-me'], queryFn: getCurrentTenant })
   const loyaltyQuery = useQuery({
     queryKey: ['customer-loyalty', orderQuery.data?.customerId],
     queryFn: () => getCustomerLoyalty(orderQuery.data!.customerId),
@@ -226,8 +230,20 @@ export function OrderDetailPage() {
 
   const order = orderQuery.data
   const editable = EDITABLE_STATUSES.includes(order.status)
-  const customerName = customersQuery.data?.find((c) => c.id === order.customerId)?.name
+  const customer = customersQuery.data?.find((c) => c.id === order.customerId)
+  const customerName = customer?.name
   const vehicle = vehiclesQuery.data?.find((v) => v.id === order.vehicleId)
+
+  const whatsappLink =
+    order.status !== 'cancelled'
+      ? buildCarReadyWhatsAppLink({
+          phone: customer?.phone,
+          customerName: customer?.name,
+          vehicle,
+          establishmentName: tenantQuery.data?.name,
+          items: order.items,
+        })
+      : null
 
   const openAdd = () => {
     setItemError(null)
@@ -341,6 +357,17 @@ export function OrderDetailPage() {
               {ACTION_LABELS[target] ?? SERVICE_STATUS_LABELS[target]}
             </Button>
           ))}
+          {whatsappLink && (
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            >
+              <WhatsAppIcon className="h-4 w-4" />
+              Avisar no WhatsApp
+            </a>
+          )}
           {order.status === 'waiting' && (
             <Button
               variant="ghost"
@@ -361,7 +388,7 @@ export function OrderDetailPage() {
         order.status !== 'cancelled' && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
             <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-              🎉 Cliente tem prêmio de fidelidade disponível
+              {'\u{1F389}'} Cliente tem prêmio de fidelidade disponível
               {loyaltyQuery.data.rewardPercent >= 100
                 ? ' (lavagem grátis)'
                 : ` (${loyaltyQuery.data.rewardPercent}% de desconto)`}
