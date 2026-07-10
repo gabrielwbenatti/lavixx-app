@@ -25,6 +25,7 @@ export const router = createBrowserRouter([
           { path: '/home', lazy: lazyRoute(() => import('@/pages/HomePage'), 'HomePage') },
           { path: '/painel', lazy: lazyRoute(() => import('@/pages/PainelPage'), 'PainelPage') },
           { path: '/relatorios', lazy: lazyRoute(() => import('@/pages/RelatoriosPage'), 'RelatoriosPage') },
+          { path: '/despesas', lazy: lazyRoute(() => import('@/pages/ExpensesPage'), 'ExpensesPage') },
           { path: '/clientes', lazy: lazyRoute(() => import('@/pages/CustomersPage'), 'CustomersPage') },
           { path: '/clientes/:id', lazy: lazyRoute(() => import('@/pages/CustomerDetailPage'), 'CustomerDetailPage') },
           { path: '/veiculos', lazy: lazyRoute(() => import('@/pages/VehiclesPage'), 'VehiclesPage') },

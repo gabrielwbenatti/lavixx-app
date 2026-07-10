@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { toDateInput } from '@/lib/datetime'
 import { getReportSummary } from '@/services/reportService'
+import { EXPENSE_CATEGORY_LABELS } from '@/types/expense'
 
 /** Presets de período rápidos. */
 function presets() {
@@ -106,9 +107,19 @@ export function RelatoriosPage() {
 
       {data && (
         <div className={isFetching ? 'opacity-60 transition-opacity' : ''}>
-          {/* Indicadores */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Resultado do caixa: recebido − despesas = lucro */}
+          <div className="mb-4 grid gap-4 sm:grid-cols-3">
             <Tile label="Recebido" value={formatCurrency(data.received)} tone="green" />
+            <Tile label="Despesas" value={formatCurrency(data.expenses)} tone="red" />
+            <Tile
+              label="Lucro (caixa)"
+              value={formatCurrency(data.profit)}
+              tone={data.profit >= 0 ? 'green' : 'red'}
+            />
+          </div>
+
+          {/* Indicadores secundários */}
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Tile label="Faturado" value={formatCurrency(data.revenue)} tone="indigo" />
             <Tile label="A receber" value={formatCurrency(data.receivable)} tone="red" />
             <Tile label="OS concluídas" value={String(data.completedOrders)} tone="slate" />
@@ -180,6 +191,44 @@ export function RelatoriosPage() {
                         <td className="px-4 py-2 text-slate-500">{s.quantity}</td>
                         <td className="px-4 py-2 text-right font-medium text-slate-800 dark:text-slate-100">
                           {formatCurrency(s.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+
+            {/* Despesas por categoria */}
+            <Card className="overflow-hidden">
+              <h2 className="border-b border-slate-200 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
+                Despesas por categoria
+              </h2>
+              {data.byExpenseCategory.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-slate-400">
+                  Nenhuma despesa no período.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/50">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Categoria</th>
+                      <th className="px-4 py-2 font-medium">Qtd</th>
+                      <th className="px-4 py-2 text-right font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.byExpenseCategory.map((c) => (
+                      <tr
+                        key={c.category}
+                        className="border-b border-slate-100 last:border-0 dark:border-slate-800"
+                      >
+                        <td className="px-4 py-2 text-slate-800 dark:text-slate-100">
+                          {EXPENSE_CATEGORY_LABELS[c.category]}
+                        </td>
+                        <td className="px-4 py-2 text-slate-500">{c.count}</td>
+                        <td className="px-4 py-2 text-right font-medium text-red-600 dark:text-red-400">
+                          {formatCurrency(c.total)}
                         </td>
                       </tr>
                     ))}
