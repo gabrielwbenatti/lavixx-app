@@ -20,19 +20,45 @@ import { Button } from '@/components/ui/Button'
 import { clearSession, getTenantName } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 
-const navItems: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
-  { to: '/home',             label: 'Início',              icon: Home,          end: true },
-  { to: '/painel',           label: 'Painel do dia',       icon: LayoutDashboard },
-  { to: '/relatorios',       label: 'Fechamento de caixa', icon: BarChart3 },
-  { to: '/despesas',         label: 'Despesas',            icon: Receipt },
-  { to: '/ordens',           label: 'Ordens de serviço',   icon: ClipboardList },
-  { to: '/clientes',         label: 'Clientes',            icon: Users },
-  { to: '/veiculos',         label: 'Veículos',            icon: Car },
-  { to: '/servicos',         label: 'Serviços',            icon: Wrench },
-  { to: '/produtos',         label: 'Produtos',            icon: ShoppingBag },
-  { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
-  { to: '/usuarios',         label: 'Usuários',            icon: UserCog },
-  { to: '/configuracoes',    label: 'Configurações',       icon: Settings },
+type NavItem = { to: string; label: string; icon: LucideIcon; end?: boolean }
+type NavSection = { title?: string; items: NavItem[] }
+
+const navSections: NavSection[] = [
+  {
+    // Item de acesso rápido, sem cabeçalho de seção.
+    items: [{ to: '/home', label: 'Início', icon: Home, end: true }],
+  },
+  {
+    title: 'Lançamentos',
+    items: [
+      { to: '/ordens',   label: 'Ordens de serviço', icon: ClipboardList },
+      { to: '/despesas', label: 'Despesas',          icon: Receipt },
+    ],
+  },
+  {
+    title: 'Cadastros',
+    items: [
+      { to: '/clientes',         label: 'Clientes',            icon: Users },
+      { to: '/veiculos',         label: 'Veículos',            icon: Car },
+      { to: '/servicos',         label: 'Serviços',            icon: Wrench },
+      { to: '/produtos',         label: 'Produtos',            icon: ShoppingBag },
+      { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
+    ],
+  },
+  {
+    title: 'Relatórios',
+    items: [
+      { to: '/painel',     label: 'Painel do dia',       icon: LayoutDashboard },
+      { to: '/relatorios', label: 'Fechamento de caixa', icon: BarChart3 },
+    ],
+  },
+  {
+    title: 'Gestão',
+    items: [
+      { to: '/usuarios',      label: 'Usuários',      icon: UserCog },
+      { to: '/configuracoes', label: 'Configurações', icon: Settings },
+    ],
+  },
 ]
 
 export function AppLayout() {
@@ -79,24 +105,33 @@ export function AppLayout() {
         </button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1 px-3">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
-                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
-              )
-            }
-          >
-            <Icon size={18} strokeWidth={1.75} />
-            {label}
-          </NavLink>
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
+        {navSections.map((section, idx) => (
+          <div key={section.title ?? idx} className={cn('flex flex-col gap-1', idx > 0 && 'mt-3')}>
+            {section.title && (
+              <p className="px-3 pb-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                {section.title}
+              </p>
+            )}
+            {section.items.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+                  )
+                }
+              >
+                <Icon size={18} strokeWidth={1.75} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 
