@@ -26,7 +26,7 @@ export function normalizeBrazilPhone(phone: string | null | undefined): string |
 
 /** Rótulo do veículo para a mensagem, evitando repetir a placa. */
 function vehicleLabel(vehicle?: VehicleResponse): string {
-  if (!vehicle) return 'seu veículo'
+  if (!vehicle) return ''
   const desc = describeVehicle(vehicle)
   const plate = vehicle.plate ? formatPlate(vehicle.plate) : null
   return plate && desc !== plate ? `${desc} (${plate})` : desc
@@ -48,7 +48,7 @@ export function buildCarReadyMessage(params: {
   const firstName = params.customerName?.trim().split(/\s+/)[0]
   const greeting = firstName ? `Olá, ${firstName}!` : 'Olá!'
   const at = params.establishmentName ? ` no ${params.establishmentName}` : ''
-  let message = `${greeting} Seu ${vehicleLabel(params.vehicle)} já está pronto para retirada${at}.`
+  let message = `${greeting} Seu veículo ${vehicleLabel(params.vehicle)} já está pronto para retirada${at}.`
 
   const items = params.items ?? []
   if (items.length > 0) {

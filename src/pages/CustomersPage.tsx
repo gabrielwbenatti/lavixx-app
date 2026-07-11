@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatDocument, formatPhone } from '@/lib/format'
+import { maskDocument, maskPhone, withMask } from '@/lib/mask'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
 import {
   createCustomer,
@@ -77,8 +78,8 @@ export function CustomersPage() {
     setFormError(null)
     reset({
       name: customer.name,
-      document: customer.document ?? '',
-      phone: customer.phone ?? '',
+      document: maskDocument(customer.document ?? ''),
+      phone: maskPhone(customer.phone ?? ''),
     })
     setDialogOpen(true)
   }
@@ -210,7 +211,7 @@ export function CustomersPage() {
               inputMode="tel"
               placeholder="(11) 91234-5678"
               invalid={!!errors.phone}
-              {...register('phone')}
+              {...withMask(register('phone'), maskPhone)}
             />
           </Field>
           <Field
@@ -222,9 +223,9 @@ export function CustomersPage() {
             <Input
               id="document"
               inputMode="numeric"
-              placeholder="00000000000"
+              placeholder="000.000.000-00"
               invalid={!!errors.document}
-              {...register('document')}
+              {...withMask(register('document'), maskDocument)}
             />
           </Field>
           <div className="mt-2 flex justify-end gap-2">

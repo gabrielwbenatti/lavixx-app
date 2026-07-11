@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatDocument, formatPlate } from '@/lib/format'
+import { maskDocument, maskPhone } from '@/lib/mask'
 import { describeVehicle } from '@/lib/describe'
 import { normalizePlate } from '@/lib/plate'
 import { listVehicles, createVehicle } from '@/services/vehicleService'
@@ -561,15 +562,16 @@ function RegisterStep({
                 inputMode="tel"
                 placeholder="(11) 91234-5678"
                 value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
+                onChange={(e) => setNewPhone(maskPhone(e.target.value))}
               />
             </Field>
             <Field label="CPF/CNPJ (opcional)" htmlFor="newDoc">
               <Input
                 id="newDoc"
                 inputMode="numeric"
+                placeholder="000.000.000-00"
                 value={newDoc}
-                onChange={(e) => setNewDoc(e.target.value)}
+                onChange={(e) => setNewDoc(maskDocument(e.target.value))}
               />
             </Field>
           </div>

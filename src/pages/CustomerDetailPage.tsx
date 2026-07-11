@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatDocument, formatPhone, formatPlate } from '@/lib/format'
+import { maskDocument, maskPhone, withMask } from '@/lib/mask'
 import { describeVehicle } from '@/lib/describe'
 import { useOrderFilters } from '@/lib/useOrderFilters'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
@@ -76,7 +77,7 @@ export function CustomerDetailPage() {
     const c = customerQuery.data
     if (!c) return
     setFormError(null)
-    reset({ name: c.name, document: c.document ?? '', phone: c.phone ?? '' })
+    reset({ name: c.name, document: maskDocument(c.document ?? ''), phone: maskPhone(c.phone ?? '') })
     setEditOpen(true)
   }
 
@@ -294,10 +295,10 @@ export function CustomerDetailPage() {
             <Input id="name" invalid={!!errors.name} {...register('name')} />
           </Field>
           <Field label="Telefone / celular (opcional)" htmlFor="phone" error={errors.phone?.message} hint="Com DDD. Ex.: 11912345678">
-            <Input id="phone" inputMode="tel" invalid={!!errors.phone} {...register('phone')} />
+            <Input id="phone" inputMode="tel" invalid={!!errors.phone} {...withMask(register('phone'), maskPhone)} />
           </Field>
           <Field label="CPF/CNPJ (opcional)" htmlFor="document" error={errors.document?.message} hint="Somente números (11 ou 14 dígitos).">
-            <Input id="document" inputMode="numeric" invalid={!!errors.document} {...register('document')} />
+            <Input id="document" inputMode="numeric" invalid={!!errors.document} {...withMask(register('document'), maskDocument)} />
           </Field>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>

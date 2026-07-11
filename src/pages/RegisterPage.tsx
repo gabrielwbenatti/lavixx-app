@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { registerTenant } from '@/services/tenantService'
 import { saveSession } from '@/lib/auth'
 import { getApiErrorMessage } from '@/lib/api'
+import { maskDocument, withMask } from '@/lib/mask'
 import {
   tenantRegistrationSchema,
   type TenantRegistrationForm,
@@ -93,9 +94,9 @@ export function RegisterPage() {
             <Input
               id="document"
               inputMode="numeric"
-              placeholder="00000000000000"
+              placeholder="000.000.000-00"
               invalid={!!errors.document}
-              {...register('document')}
+              {...withMask(register('document'), maskDocument)}
             />
           </Field>
 
