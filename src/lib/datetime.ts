@@ -29,6 +29,28 @@ export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
+/** Data + hora pt-BR (dd/MM/yyyy HH:mm, local). */
+export function formatDateTimeBR(iso: string): string {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/** Converte um ISO para o formato de <input type="datetime-local"> (yyyy-MM-ddTHH:mm, horário local). */
+export function toDateTimeLocalInput(iso: string): string {
+  const d = new Date(iso)
+  const y = d.getFullYear()
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${mo}-${day}T${h}:${mi}`
+}
+
 /** Tempo decorrido desde a data, resumido: "agora", "há 12 min", "há 2 h 5 min". */
 export function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()

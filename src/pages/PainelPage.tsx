@@ -5,13 +5,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
-import { isToday, formatTime, timeAgo } from '@/lib/datetime'
+import { isToday, formatTime, timeAgo, toDateInput } from '@/lib/datetime'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
-import { listServiceOrders, updateServiceOrderStatus } from '@/services/serviceOrderService'
+import {
+  listPickupEstimates,
+  listScheduledServiceOrders,
+  listServiceOrders,
+  updateServiceOrderStatus,
+} from '@/services/serviceOrderService'
 import { listVehicles } from '@/services/vehicleService'
 import { listCustomers } from '@/services/customerService'
 import { getCurrentTenant } from '@/services/tenantService'
@@ -29,10 +35,22 @@ export function PainelPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
+  const today = toDateInput(new Date())
+
   const ordersQuery = useQuery({
     queryKey: ['service-orders', 'all'],
     queryFn: () => listServiceOrders(),
     refetchInterval: 20000, // atualiza o quadro a cada 20s
+  })
+  const scheduledTodayQuery = useQuery({
+    queryKey: ['service-orders-schedule', today],
+    queryFn: () => listScheduledServiceOrders(today, today),
+    refetchInterval: 20000,
+  })
+  const pickupTodayQuery = useQuery({
+    queryKey: ['service-orders-pickup', today],
+    queryFn: () => listPickupEstimates(today, today),
+    refetchInterval: 20000,
   })
   const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
   const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
@@ -71,7 +89,10 @@ export function PainelPage() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: ServiceStatus }) =>
       updateServiceOrderStatus(id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-orders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['service-orders-schedule'] })
+    },
     onError: (err) => window.alert(getApiErrorMessage(err)),
   })
 
@@ -96,6 +117,86 @@ export function PainelPage() {
       {ordersQuery.isError && (
         <p className="mb-4 text-sm text-red-500">{getApiErrorMessage(ordersQuery.error)}</p>
       )}
+
+      {/* Destaques do dia: agendados que ainda não chegaram e retiradas previstas */}
+      <div className="mb-6 grid gap-4 md:grid-cols-2">
+        <Card className="p-4">
+          <h2 className="mb-2 text-sm font-semibold text-violet-700 dark:text-violet-300">
+            Agendados para hoje
+          </h2>
+          {(scheduledTodayQuery.data ?? []).length === 0 ? (
+            <EmptyHint text="Nenhum agendamento para hoje." />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {scheduledTodayQuery.data!.map((o) => {
+                const vehicle = vehicleById.get(o.vehicleId)
+                return (
+                  <li
+                    key={o.id}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/50"
+                  >
+                    <button
+                      type="button"
+                      className="text-left"
+                      onClick={() => navigate(`/ordens/${o.id}`)}
+                    >
+                      <span className="font-medium text-slate-800 dark:text-slate-100">
+                        {o.scheduledAt ? formatTime(o.scheduledAt) : '—'}
+                      </span>{' '}
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {customerById.get(o.customerId)?.name ?? 'Cliente'}
+                        {vehicle ? ` · ${describeVehicle(vehicle)}` : ''}
+                      </span>
+                    </button>
+                    <Button
+                      className="h-8 px-2 text-xs"
+                      disabled={statusMutation.isPending}
+                      onClick={() => statusMutation.mutate({ id: o.id, status: 'waiting' })}
+                    >
+                      Chegou
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-4">
+          <h2 className="mb-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
+            Retiradas previstas para hoje
+          </h2>
+          {(pickupTodayQuery.data ?? []).length === 0 ? (
+            <EmptyHint text="Nenhuma retirada prevista para hoje." />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {pickupTodayQuery.data!.map((o) => {
+                const vehicle = vehicleById.get(o.vehicleId)
+                return (
+                  <li key={o.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"
+                      onClick={() => navigate(`/ordens/${o.id}`)}
+                    >
+                      <span>
+                        <span className="font-medium text-slate-800 dark:text-slate-100">
+                          {o.estimatedPickupAt ? formatTime(o.estimatedPickupAt) : '—'}
+                        </span>{' '}
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {customerById.get(o.customerId)?.name ?? 'Cliente'}
+                          {vehicle ? ` · ${describeVehicle(vehicle)}` : ''}
+                        </span>
+                      </span>
+                      <StatusBadge status={o.status} />
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
 
       {/* Quadro */}
       <div className="grid gap-4 md:grid-cols-3">

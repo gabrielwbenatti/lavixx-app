@@ -2,10 +2,11 @@
 
 import type { PaymentResponse, PaymentStatus } from '@/types/payment'
 
-export const SERVICE_STATUSES = ['waiting', 'in_progress', 'done', 'cancelled'] as const
+export const SERVICE_STATUSES = ['scheduled', 'waiting', 'in_progress', 'done', 'cancelled'] as const
 export type ServiceStatus = (typeof SERVICE_STATUSES)[number]
 
 export const SERVICE_STATUS_LABELS: Record<ServiceStatus, string> = {
+  scheduled: 'Agendada',
   waiting: 'Aguardando',
   in_progress: 'Em andamento',
   done: 'Concluída',
@@ -14,11 +15,15 @@ export const SERVICE_STATUS_LABELS: Record<ServiceStatus, string> = {
 
 /** Transições de status permitidas (espelha VALID_TRANSITIONS da API). */
 export const STATUS_TRANSITIONS: Record<ServiceStatus, ServiceStatus[]> = {
+  scheduled: ['waiting', 'cancelled'],
   waiting: ['in_progress', 'cancelled'],
   in_progress: ['done', 'cancelled'],
   done: [],
   cancelled: [],
 }
+
+/** Status em que a ordem pode ser excluída (espelha DELETABLE_STATUSES da API). */
+export const DELETABLE_STATUSES: ServiceStatus[] = ['scheduled', 'waiting']
 
 /** Status em que a ordem aceita edição de itens. */
 export const EDITABLE_STATUSES: ServiceStatus[] = ['waiting', 'in_progress']
@@ -46,6 +51,8 @@ export interface ServiceOrderRequest {
   vehicleId: string
   items?: ServiceOrderItemRequest[]
   observations?: string
+  /** Se informado, a OS nasce com status 'scheduled' em vez de 'waiting'. */
+  scheduledAt?: string
 }
 
 export interface ServiceOrderResponse {
@@ -70,6 +77,8 @@ export interface ServiceOrderResponse {
   paidTotal: number
   paymentStatus: PaymentStatus
   observations: string | null
+  scheduledAt: string | null
+  estimatedPickupAt: string | null
   createdAt: string
   updatedAt: string
   finishedAt: string | null

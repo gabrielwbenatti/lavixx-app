@@ -68,12 +68,22 @@ export function OrdersPage() {
   const {
     handleSubmit,
     reset,
+    register,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateOrderForm>({ resolver: zodResolver(createOrderSchema) })
 
+  const isScheduled = watch('scheduled')
+
   const createMutation = useMutation({
-    mutationFn: (form: CreateOrderForm) => createServiceOrder({ vehicleId: form.vehicleId }),
+    mutationFn: (form: CreateOrderForm) =>
+      createServiceOrder({
+        vehicleId: form.vehicleId,
+        ...(form.scheduled && form.scheduledAt
+          ? { scheduledAt: new Date(form.scheduledAt).toISOString() }
+          : {}),
+      }),
     onSuccess: (order) => {
       queryClient.invalidateQueries({ queryKey: ['service-orders'] })
       setDialogOpen(false)
@@ -86,7 +96,7 @@ export function OrdersPage() {
 
   const openCreate = () => {
     setFormError(null)
-    reset({ vehicleId: '' })
+    reset({ vehicleId: '', scheduled: false, scheduledAt: '' })
     setFormKey((k) => k + 1)
     setDialogOpen(true)
   }
@@ -320,12 +330,37 @@ export function OrdersPage() {
               }
             />
           </Field>
+
+          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <input type="checkbox" className="h-4 w-4 rounded" {...register('scheduled')} />
+            Agendar para depois (cliente ainda não chegou)
+          </label>
+
+          {isScheduled && (
+            <Field
+              label="Data e hora do agendamento"
+              htmlFor="scheduledAt"
+              error={errors.scheduledAt?.message}
+            >
+              <Input
+                id="scheduledAt"
+                type="datetime-local"
+                invalid={!!errors.scheduledAt}
+                {...register('scheduledAt')}
+              />
+            </Field>
+          )}
+
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Criando…' : 'Criar e adicionar itens'}
+              {createMutation.isPending
+                ? 'Salvando…'
+                : isScheduled
+                  ? 'Agendar'
+                  : 'Criar e adicionar itens'}
             </Button>
           </div>
         </form>

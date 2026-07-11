@@ -24,6 +24,26 @@ export async function listServiceOrders(filters?: {
   return data
 }
 
+export async function listScheduledServiceOrders(
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceOrderResponse[]> {
+  const { data } = await api.get<ServiceOrderResponse[]>('/service-orders/schedule', {
+    params: { fromDate, toDate },
+  })
+  return data
+}
+
+export async function listPickupEstimates(
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceOrderResponse[]> {
+  const { data } = await api.get<ServiceOrderResponse[]>('/service-orders/pickup-estimates', {
+    params: { fromDate, toDate },
+  })
+  return data
+}
+
 export async function getServiceOrder(id: string): Promise<ServiceOrderResponse> {
   const { data } = await api.get<ServiceOrderResponse>(`/service-orders/${id}`)
   return data
@@ -60,6 +80,16 @@ export async function updateServiceOrderObservations(
 ): Promise<ServiceOrderResponse> {
   const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/observations`, {
     observations,
+  })
+  return data
+}
+
+export async function updateServiceOrderPickupEstimate(
+  id: string,
+  estimatedPickupAt: string | null,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/pickup-estimate`, {
+    estimatedPickupAt,
   })
   return data
 }

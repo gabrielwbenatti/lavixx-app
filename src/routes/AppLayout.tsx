@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
+  CalendarClock,
   Car,
   ClipboardList,
   CreditCard,
@@ -32,6 +33,7 @@ const navSections: NavSection[] = [
     title: 'Lançamentos',
     items: [
       { to: '/ordens',   label: 'Ordens de serviço', icon: ClipboardList },
+      { to: '/agenda',   label: 'Agenda',            icon: CalendarClock },
       { to: '/despesas', label: 'Despesas',          icon: Receipt },
     ],
   },

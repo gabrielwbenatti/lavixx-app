@@ -1,9 +1,19 @@
 import { z } from 'zod'
 
-/** Criação de OS: apenas o veículo (itens são adicionados na tela de detalhe). */
-export const createOrderSchema = z.object({
-  vehicleId: z.string().min(1, 'Selecione o veículo'),
-})
+/**
+ * Criação de OS: veículo + agendamento opcional (itens são adicionados na tela de
+ * detalhe). Quando `scheduled` é marcado, `scheduledAt` (datetime-local) é obrigatório.
+ */
+export const createOrderSchema = z
+  .object({
+    vehicleId: z.string().min(1, 'Selecione o veículo'),
+    scheduled: z.boolean().optional(),
+    scheduledAt: z.string().optional(),
+  })
+  .refine((data) => !data.scheduled || !!data.scheduledAt, {
+    message: 'Informe data e hora do agendamento',
+    path: ['scheduledAt'],
+  })
 export type CreateOrderForm = z.infer<typeof createOrderSchema>
 
 /**

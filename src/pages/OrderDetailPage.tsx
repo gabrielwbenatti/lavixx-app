@@ -18,7 +18,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CatalogSearch } from '@/components/CatalogSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
-import { formatTime } from '@/lib/datetime'
+import { formatTime, formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
 import { describeVehicle } from '@/lib/describe'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import {
@@ -45,6 +45,7 @@ import {
   redeemServiceOrderLoyalty,
   updateServiceOrderItem,
   updateServiceOrderObservations,
+  updateServiceOrderPickupEstimate,
   updateServiceOrderStatus,
   updateServiceOrderTax,
 } from '@/services/serviceOrderService'
@@ -55,6 +56,7 @@ import { listCustomers, getCustomerLoyalty } from '@/services/customerService'
 import { listPaymentMethods } from '@/services/paymentMethodService'
 import { getCurrentTenant } from '@/services/tenantService'
 import {
+  DELETABLE_STATUSES,
   EDITABLE_STATUSES,
   SERVICE_STATUS_LABELS,
   STATUS_TRANSITIONS,
@@ -64,6 +66,7 @@ import {
 import type { PaymentResponse } from '@/types/payment'
 
 const ACTION_LABELS: Partial<Record<ServiceStatus, string>> = {
+  waiting: 'Cliente chegou',
   in_progress: 'Iniciar',
   done: 'Concluir',
   cancelled: 'Cancelar ordem',
@@ -87,6 +90,9 @@ export function OrderDetailPage() {
   const [obsOpen, setObsOpen] = useState(false)
   const [obsValue, setObsValue] = useState('')
   const [obsError, setObsError] = useState<string | null>(null)
+  const [pickupOpen, setPickupOpen] = useState(false)
+  const [pickupValue, setPickupValue] = useState('')
+  const [pickupError, setPickupError] = useState<string | null>(null)
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
@@ -214,6 +220,17 @@ export function OrderDetailPage() {
     onError: (err) => setObsError(getApiErrorMessage(err)),
   })
 
+  const pickupMutation = useMutation({
+    mutationFn: (estimatedPickupAt: string | null) =>
+      updateServiceOrderPickupEstimate(id, estimatedPickupAt),
+    onSuccess: () => {
+      invalidate()
+      setPickupOpen(false)
+      addToast('Previsão de retirada atualizada', 'success')
+    },
+    onError: (err) => setPickupError(getApiErrorMessage(err)),
+  })
+
   const redeemLoyaltyMutation = useMutation({
     mutationFn: () => redeemServiceOrderLoyalty(id),
     onSuccess: () => {
@@ -316,6 +333,21 @@ export function OrderDetailPage() {
     setObsOpen(true)
   }
 
+  const openPickup = () => {
+    setPickupError(null)
+    setPickupValue(order.estimatedPickupAt ? toDateTimeLocalInput(order.estimatedPickupAt) : '')
+    setPickupOpen(true)
+  }
+
+  const submitPickup = () => {
+    if (!pickupValue) {
+      setPickupError('Informe data e hora')
+      return
+    }
+    setPickupError(null)
+    pickupMutation.mutate(new Date(pickupValue).toISOString())
+  }
+
   const submitTax = () => {
     const parsed = Number(taxValue.replace(',', '.'))
     if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
@@ -350,7 +382,9 @@ export function OrderDetailPage() {
               {vehicle?.plate ? ` · ${formatPlate(vehicle.plate)}` : ''}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              Aberta em {new Date(order.createdAt).toLocaleString('pt-BR')}
+              {order.status === 'scheduled' && order.scheduledAt
+                ? `Agendada para ${formatDateTimeBR(order.scheduledAt)}`
+                : `Aberta em ${new Date(order.createdAt).toLocaleString('pt-BR')}`}
               {order.finishedAt
                 ? ` · Finalizada em ${new Date(order.finishedAt).toLocaleString('pt-BR')}`
                 : ''}
@@ -389,7 +423,7 @@ export function OrderDetailPage() {
               Avisar no WhatsApp
             </a>
           )}
-          {order.status === 'waiting' && (
+          {DELETABLE_STATUSES.includes(order.status) && (
             <Button
               variant="ghost"
               className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
@@ -444,6 +478,25 @@ export function OrderDetailPage() {
           <p className="mt-2 text-sm text-slate-400">Nenhuma observação registrada.</p>
         )}
       </Card>
+
+      {/* Previsão de retirada */}
+      {order.status !== 'cancelled' && (
+        <Card className="mb-4 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-slate-800 dark:text-slate-100">Previsão de retirada</h2>
+            <Button variant="outline" className="h-9 px-3" onClick={openPickup}>
+              {order.estimatedPickupAt ? 'Editar' : 'Informar'}
+            </Button>
+          </div>
+          {order.estimatedPickupAt ? (
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Cliente volta em {formatDateTimeBR(order.estimatedPickupAt)}
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-slate-400">Nenhuma previsão registrada.</p>
+          )}
+        </Card>
+      )}
 
       {/* Itens */}
       <Card className="overflow-hidden">
@@ -741,6 +794,58 @@ export function OrderDetailPage() {
             <Button type="submit" disabled={obsMutation.isPending}>
               {obsMutation.isPending ? 'Salvando…' : 'Salvar'}
             </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Dialog: previsão de retirada */}
+      <Dialog
+        open={pickupOpen}
+        onClose={() => setPickupOpen(false)}
+        title="Previsão de retirada"
+        description="Quando o cliente disse que vem buscar o veículo."
+      >
+        {pickupError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {pickupError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitPickup()
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Field label="Data e hora" htmlFor="pickupAt">
+            <Input
+              id="pickupAt"
+              type="datetime-local"
+              value={pickupValue}
+              onChange={(e) => setPickupValue(e.target.value)}
+            />
+          </Field>
+          <div className="mt-2 flex justify-between gap-2">
+            {order.estimatedPickupAt && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                disabled={pickupMutation.isPending}
+                onClick={() => pickupMutation.mutate(null)}
+              >
+                Remover previsão
+              </Button>
+            )}
+            <div className="ml-auto flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setPickupOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={pickupMutation.isPending}>
+                {pickupMutation.isPending ? 'Salvando…' : 'Salvar'}
+              </Button>
+            </div>
           </div>
         </form>
       </Dialog>

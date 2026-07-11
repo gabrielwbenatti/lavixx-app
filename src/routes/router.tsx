@@ -36,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/formas-pagamento', lazy: lazyRoute(() => import('@/pages/PaymentMethodsPage'), 'PaymentMethodsPage') },
           { path: '/ordens', lazy: lazyRoute(() => import('@/pages/OrdersPage'), 'OrdersPage') },
           { path: '/ordens/:id', lazy: lazyRoute(() => import('@/pages/OrderDetailPage'), 'OrderDetailPage') },
+          { path: '/agenda', lazy: lazyRoute(() => import('@/pages/AgendaPage'), 'AgendaPage') },
           { path: '/usuarios', lazy: lazyRoute(() => import('@/pages/UsersPage'), 'UsersPage') },
           { path: '/configuracoes', lazy: lazyRoute(() => import('@/pages/SettingsPage'), 'SettingsPage') },
         ],
