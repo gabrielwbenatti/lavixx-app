@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Printer } from 'lucide-react'
 import { useToast } from '@/lib/toastContext'
 
 import { Button } from '@/components/ui/Button'
@@ -412,6 +413,16 @@ export function OrderDetailPage() {
               {ACTION_LABELS[target] ?? SERVICE_STATUS_LABELS[target]}
             </Button>
           ))}
+          {order.status !== 'scheduled' && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.open(`/ordens/${id}/recibo`, '_blank')}
+            >
+              <Printer size={16} />
+              Imprimir
+            </Button>
+          )}
           {whatsappLink && (
             <a
               href={whatsappLink}

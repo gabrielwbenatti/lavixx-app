@@ -20,6 +20,8 @@ export const router = createBrowserRouter([
     children: [
       // Totem de atendimento: tela cheia, sem a navegação lateral.
       { path: '/atendimento', lazy: lazyRoute(() => import('@/pages/AtendimentoPage'), 'AtendimentoPage') },
+      // Recibo para impressão: tela cheia, sem a navegação lateral.
+      { path: '/ordens/:id/recibo', lazy: lazyRoute(() => import('@/pages/ReceiptPage'), 'ReceiptPage') },
       {
         element: <AppLayout />,
         children: [
