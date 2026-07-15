@@ -3,6 +3,8 @@
 export interface PaymentRequest {
   paymentMethodId: string
   amount: number
+  /** Data retroativa; so aplicada se quem enviar for admin (senao o backend usa "agora"). */
+  paidAt?: string
 }
 
 export interface PaymentResponse {

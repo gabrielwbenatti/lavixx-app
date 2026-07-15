@@ -94,6 +94,41 @@ export async function updateServiceOrderPickupEstimate(
   return data
 }
 
+/** Uso administrativo: corrige a data de emissao (lancamento retroativo). */
+export async function updateServiceOrderIssuedAt(
+  id: string,
+  issuedAt: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/issued-at`, {
+    issuedAt,
+  })
+  return data
+}
+
+/** Uso administrativo: corrige a data de finalizacao (a OS ja precisa estar concluida/cancelada). */
+export async function updateServiceOrderFinishedAt(
+  id: string,
+  finishedAt: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/finished-at`, {
+    finishedAt,
+  })
+  return data
+}
+
+/** Uso administrativo: corrige a data de um pagamento ja registrado. */
+export async function updateServiceOrderPaymentDate(
+  orderId: string,
+  paymentId: string,
+  paidAt: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(
+    `/service-orders/${orderId}/payments/${paymentId}/date`,
+    { paidAt },
+  )
+  return data
+}
+
 export async function redeemServiceOrderLoyalty(id: string): Promise<ServiceOrderResponse> {
   const { data } = await api.post<ServiceOrderResponse>(`/service-orders/${id}/loyalty-redeem`)
   return data

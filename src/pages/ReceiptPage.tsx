@@ -94,7 +94,7 @@ export function ReceiptPage() {
         <p className="text-center font-semibold">ORDEM DE SERVIÇO</p>
         <Row label="Número" value={`#${order.id.slice(0, 8)}`} />
         <Row label="Status" value={SERVICE_STATUS_LABELS[order.status]} />
-        <Row label="Aberta em" value={formatDateTimeBR(order.createdAt)} />
+        <Row label="Aberta em" value={formatDateTimeBR(order.issuedAt)} />
         {order.finishedAt && <Row label="Finalizada em" value={formatDateTimeBR(order.finishedAt)} />}
 
         <Divider />

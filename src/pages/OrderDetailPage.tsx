@@ -3,8 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Printer } from 'lucide-react'
+import { Pencil, Printer } from 'lucide-react'
 import { useToast } from '@/lib/toastContext'
+import { isAdmin } from '@/lib/auth'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -19,7 +20,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CatalogSearch } from '@/components/CatalogSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
-import { formatTime, formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
+import { formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
 import { describeVehicle } from '@/lib/describe'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import {
@@ -44,8 +45,11 @@ import {
   removeServiceOrderPayment,
   removeServiceOrderLoyalty,
   redeemServiceOrderLoyalty,
+  updateServiceOrderFinishedAt,
+  updateServiceOrderIssuedAt,
   updateServiceOrderItem,
   updateServiceOrderObservations,
+  updateServiceOrderPaymentDate,
   updateServiceOrderPickupEstimate,
   updateServiceOrderStatus,
   updateServiceOrderTax,
@@ -94,6 +98,14 @@ export function OrderDetailPage() {
   const [pickupOpen, setPickupOpen] = useState(false)
   const [pickupValue, setPickupValue] = useState('')
   const [pickupError, setPickupError] = useState<string | null>(null)
+  const [datesOpen, setDatesOpen] = useState(false)
+  const [issuedAtValue, setIssuedAtValue] = useState('')
+  const [finishedAtValue, setFinishedAtValue] = useState('')
+  const [datesError, setDatesError] = useState<string | null>(null)
+  const [editingPayment, setEditingPayment] = useState<PaymentResponse | null>(null)
+  const [paymentDateValue, setPaymentDateValue] = useState('')
+  const [paymentDateError, setPaymentDateError] = useState<string | null>(null)
+  const [payDateValue, setPayDateValue] = useState('')
 
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
@@ -186,7 +198,11 @@ export function OrderDetailPage() {
 
   const addPaymentMutation = useMutation({
     mutationFn: (form: PaymentFormOutput) =>
-      addServiceOrderPayment(id, { paymentMethodId: form.paymentMethodId, amount: form.amount }),
+      addServiceOrderPayment(id, {
+        paymentMethodId: form.paymentMethodId,
+        amount: form.amount,
+        ...(isAdmin() && payDateValue ? { paidAt: new Date(payDateValue).toISOString() } : {}),
+      }),
     onSuccess: () => {
       invalidate()
       setPayOpen(false)
@@ -230,6 +246,32 @@ export function OrderDetailPage() {
       addToast('Previsão de retirada atualizada', 'success')
     },
     onError: (err) => setPickupError(getApiErrorMessage(err)),
+  })
+
+  const datesMutation = useMutation({
+    mutationFn: async ({ issuedAt, finishedAt }: { issuedAt: string; finishedAt: string | null }) => {
+      await updateServiceOrderIssuedAt(id, issuedAt)
+      if (finishedAt) {
+        await updateServiceOrderFinishedAt(id, finishedAt)
+      }
+    },
+    onSuccess: () => {
+      invalidate()
+      setDatesOpen(false)
+      addToast('Datas da ordem atualizadas', 'success')
+    },
+    onError: (err) => setDatesError(getApiErrorMessage(err)),
+  })
+
+  const paymentDateMutation = useMutation({
+    mutationFn: ({ paymentId, paidAt }: { paymentId: string; paidAt: string }) =>
+      updateServiceOrderPaymentDate(id, paymentId, paidAt),
+    onSuccess: () => {
+      invalidate()
+      setEditingPayment(null)
+      addToast('Data do pagamento atualizada', 'success')
+    },
+    onError: (err) => setPaymentDateError(getApiErrorMessage(err)),
   })
 
   const redeemLoyaltyMutation = useMutation({
@@ -311,7 +353,26 @@ export function OrderDetailPage() {
       paymentMethodId: activeMethods[0]?.id ?? '',
       amount: remaining > 0 ? String(remaining.toFixed(2)) : '',
     })
+    setPayDateValue(toDateTimeLocalInput(new Date().toISOString()))
     setPayOpen(true)
+  }
+
+  const openEditPaymentDate = (payment: PaymentResponse) => {
+    setPaymentDateError(null)
+    setPaymentDateValue(toDateTimeLocalInput(payment.paidAt))
+    setEditingPayment(payment)
+  }
+
+  const submitEditPaymentDate = () => {
+    if (!paymentDateValue) {
+      setPaymentDateError('Informe data e hora')
+      return
+    }
+    setPaymentDateError(null)
+    paymentDateMutation.mutate({
+      paymentId: editingPayment!.id,
+      paidAt: new Date(paymentDateValue).toISOString(),
+    })
   }
 
   const handleRemovePayment = (payment: PaymentResponse) => {
@@ -349,6 +410,29 @@ export function OrderDetailPage() {
     pickupMutation.mutate(new Date(pickupValue).toISOString())
   }
 
+  const openDates = () => {
+    setDatesError(null)
+    setIssuedAtValue(toDateTimeLocalInput(order.issuedAt))
+    setFinishedAtValue(order.finishedAt ? toDateTimeLocalInput(order.finishedAt) : '')
+    setDatesOpen(true)
+  }
+
+  const submitDates = () => {
+    if (!issuedAtValue) {
+      setDatesError('Informe a data de emissão')
+      return
+    }
+    if (order.finishedAt && !finishedAtValue) {
+      setDatesError('Informe a data de finalização')
+      return
+    }
+    setDatesError(null)
+    datesMutation.mutate({
+      issuedAt: new Date(issuedAtValue).toISOString(),
+      finishedAt: order.finishedAt ? new Date(finishedAtValue).toISOString() : null,
+    })
+  }
+
   const submitTax = () => {
     const parsed = Number(taxValue.replace(',', '.'))
     if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
@@ -382,13 +466,23 @@ export function OrderDetailPage() {
               {vehicle ? describeVehicle(vehicle) : 'Veículo'}
               {vehicle?.plate ? ` · ${formatPlate(vehicle.plate)}` : ''}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
-              {order.status === 'scheduled' && order.scheduledAt
-                ? `Agendada para ${formatDateTimeBR(order.scheduledAt)}`
-                : `Aberta em ${new Date(order.createdAt).toLocaleString('pt-BR')}`}
-              {order.finishedAt
-                ? ` · Finalizada em ${new Date(order.finishedAt).toLocaleString('pt-BR')}`
-                : ''}
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+              <span>
+                {order.status === 'scheduled' && order.scheduledAt
+                  ? `Agendada para ${formatDateTimeBR(order.scheduledAt)}`
+                  : `Aberta em ${formatDateTimeBR(order.issuedAt)}`}
+                {order.finishedAt ? ` · Finalizada em ${formatDateTimeBR(order.finishedAt)}` : ''}
+              </span>
+              {isAdmin() && order.status !== 'scheduled' && (
+                <button
+                  type="button"
+                  onClick={openDates}
+                  className="text-slate-400 hover:text-indigo-600"
+                  title="Editar datas (admin)"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5">
@@ -698,7 +792,19 @@ export function OrderDetailPage() {
               >
                 <div>
                   <div className="font-medium text-slate-800 dark:text-slate-100">{p.methodName}</div>
-                  <div className="text-xs text-slate-400">{formatTime(p.paidAt)}</div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                    {formatDateTimeBR(p.paidAt)}
+                    {isAdmin() && (
+                      <button
+                        type="button"
+                        onClick={() => openEditPaymentDate(p)}
+                        className="text-slate-400 hover:text-indigo-600"
+                        title="Editar data (admin)"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-medium text-slate-800 dark:text-slate-100">
@@ -861,6 +967,94 @@ export function OrderDetailPage() {
         </form>
       </Dialog>
 
+      {/* Dialog: editar datas da OS (admin) */}
+      <Dialog
+        open={datesOpen}
+        onClose={() => setDatesOpen(false)}
+        title="Editar datas da OS"
+        description="Uso administrativo — para lançamento retroativo de ordens antigas. Não afeta o registro de auditoria, só as datas usadas em telas e relatórios."
+      >
+        {datesError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {datesError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitDates()
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Field label="Data de emissão" htmlFor="issuedAt">
+            <Input
+              id="issuedAt"
+              type="datetime-local"
+              value={issuedAtValue}
+              onChange={(e) => setIssuedAtValue(e.target.value)}
+            />
+          </Field>
+          {order.finishedAt && (
+            <Field label="Data de finalização" htmlFor="finishedAtField">
+              <Input
+                id="finishedAtField"
+                type="datetime-local"
+                value={finishedAtValue}
+                onChange={(e) => setFinishedAtValue(e.target.value)}
+              />
+            </Field>
+          )}
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setDatesOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={datesMutation.isPending}>
+              {datesMutation.isPending ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Dialog: editar data de um pagamento (admin) */}
+      <Dialog
+        open={!!editingPayment}
+        onClose={() => setEditingPayment(null)}
+        title="Editar data do pagamento"
+        description={editingPayment?.methodName}
+      >
+        {paymentDateError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {paymentDateError}
+          </div>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitEditPaymentDate()
+          }}
+          className="flex flex-col gap-4"
+          noValidate
+        >
+          <Field label="Data e hora" htmlFor="paymentDate">
+            <Input
+              id="paymentDate"
+              type="datetime-local"
+              value={paymentDateValue}
+              onChange={(e) => setPaymentDateValue(e.target.value)}
+            />
+          </Field>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setEditingPayment(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={paymentDateMutation.isPending}>
+              {paymentDateMutation.isPending ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
       {/* Dialog: registrar pagamento */}
       <Dialog open={payOpen} onClose={() => setPayOpen(false)} title="Registrar pagamento">
         {payError && (
@@ -907,6 +1101,16 @@ export function OrderDetailPage() {
               {...payForm.register('amount')}
             />
           </Field>
+          {isAdmin() && (
+            <Field label="Data do pagamento (admin)" htmlFor="payDate">
+              <Input
+                id="payDate"
+                type="datetime-local"
+                value={payDateValue}
+                onChange={(e) => setPayDateValue(e.target.value)}
+              />
+            </Field>
+          )}
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setPayOpen(false)}>
               Cancelar

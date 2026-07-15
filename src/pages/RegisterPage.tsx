@@ -46,7 +46,7 @@ export function RegisterPage() {
         adminEmail: form.adminEmail,
         adminPassword: form.adminPassword,
       })
-      saveSession(response.token, response.tenantName)
+      saveSession(response.token, response.tenantName, 'admin')
       navigate('/home', { replace: true })
     } catch (error) {
       setApiError(getApiErrorMessage(error))

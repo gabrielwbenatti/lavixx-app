@@ -283,7 +283,7 @@ export function OrdersPage() {
                     {formatCurrency(order.total)}
                   </td>
                   <td className="hidden px-4 py-3 text-slate-500 md:table-cell">
-                    {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                    {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link to={`/ordens/${order.id}`}>

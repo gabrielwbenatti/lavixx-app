@@ -39,7 +39,7 @@ export function AcceptInvitePage() {
     setApiError(null)
     try {
       const response = await acceptInvite({ token, password: form.password })
-      saveSession(response.token, previewQuery.data?.tenantName)
+      saveSession(response.token, previewQuery.data?.tenantName, response.role)
       navigate('/home', { replace: true })
     } catch (error) {
       setApiError(getApiErrorMessage(error))

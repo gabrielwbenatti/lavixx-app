@@ -33,7 +33,7 @@ export function LoginPage() {
     setApiError(null)
     try {
       const response = await login({ email: form.email, password: form.password })
-      saveSession(response.token)
+      saveSession(response.token, undefined, response.role)
       navigate(from, { replace: true })
     } catch (error) {
       setApiError(getApiErrorMessage(error))

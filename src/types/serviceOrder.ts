@@ -79,6 +79,8 @@ export interface ServiceOrderResponse {
   observations: string | null
   scheduledAt: string | null
   estimatedPickupAt: string | null
+  /** Data de emissao da OS (editavel por admin) — usada nas telas/relatorios. */
+  issuedAt: string
   createdAt: string
   updatedAt: string
   finishedAt: string | null
