@@ -94,6 +94,17 @@ export async function updateServiceOrderPickupEstimate(
   return data
 }
 
+/** Reagenda uma OS ainda nao chegada (cliente pediu para mudar o horario, ou lancamento errado). */
+export async function updateServiceOrderScheduledAt(
+  id: string,
+  scheduledAt: string,
+): Promise<ServiceOrderResponse> {
+  const { data } = await api.patch<ServiceOrderResponse>(`/service-orders/${id}/scheduled-at`, {
+    scheduledAt,
+  })
+  return data
+}
+
 /** Uso administrativo: corrige a data de emissao (lancamento retroativo). */
 export async function updateServiceOrderIssuedAt(
   id: string,
