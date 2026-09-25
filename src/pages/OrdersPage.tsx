@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
+import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Pagination } from '@/components/ui/Pagination'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -254,19 +255,18 @@ export function OrdersPage() {
                 <th className="hidden px-4 py-3 font-medium md:table-cell">Itens</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="hidden px-4 py-3 font-medium md:table-cell">Aberta em</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
-                >
+                <LinkRow key={order.id} to={`/ordens/${order.id}`}>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-800 dark:text-slate-100">
+                    <Link
+                      to={`/ordens/${order.id}`}
+                      className="font-medium text-slate-800 hover:text-indigo-600 hover:underline dark:text-slate-100"
+                    >
                       {order.customer.name}
-                    </div>
+                    </Link>
                     <div className="text-xs text-slate-400">
                       {describeVehicle(order.vehicle)}
                     </div>
@@ -289,14 +289,7 @@ export function OrdersPage() {
                   <td className="hidden px-4 py-3 text-slate-500 md:table-cell">
                     {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link to={`/ordens/${order.id}`}>
-                      <Button variant="ghost" className="h-9 px-3">
-                        Abrir
-                      </Button>
-                    </Link>
-                  </td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </table>

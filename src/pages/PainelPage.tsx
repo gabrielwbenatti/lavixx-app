@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { formatTime, timeAgo, toDateInput } from '@/lib/datetime'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
+import { useRowNavigation } from '@/lib/useRowNavigation'
 import {
   listPickupEstimates,
   listScheduledServiceOrders,
@@ -46,7 +47,7 @@ const byCreatedAt = (a: ServiceOrderResponse, b: ServiceOrderResponse) =>
   a.createdAt.localeCompare(b.createdAt)
 
 export function PainelPage() {
-  const navigate = useNavigate()
+  const openRow = useRowNavigation()
   const queryClient = useQueryClient()
 
   const today = toDateInput(new Date())
@@ -141,20 +142,17 @@ export function PainelPage() {
                 return (
                   <li
                     key={o.id}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-800/50"
+                    onClick={openRow(`/ordens/${o.id}`)}
+                    className="flex items-center justify-between gap-2 cursor-pointer rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"
                   >
-                    <button
-                      type="button"
-                      className="text-left"
-                      onClick={() => navigate(`/ordens/${o.id}`)}
-                    >
+                    <Link to={`/ordens/${o.id}`} className="text-left">
                       <span className="font-medium text-slate-800 dark:text-slate-100">
                         {o.scheduledAt ? formatTime(o.scheduledAt) : '—'}
                       </span>{' '}
                       <span className="text-slate-500 dark:text-slate-400">
                         {o.customer.name} · {describeVehicle(o.vehicle)}
                       </span>
-                    </button>
+                    </Link>
                     <Button
                       className="h-8 px-2 text-xs"
                       disabled={statusMutation.isPending}
@@ -180,10 +178,9 @@ export function PainelPage() {
               {pickupTodayQuery.data!.map((o) => {
                 return (
                   <li key={o.id}>
-                    <button
-                      type="button"
+                    <Link
+                      to={`/ordens/${o.id}`}
                       className="flex w-full items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-left text-sm hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800"
-                      onClick={() => navigate(`/ordens/${o.id}`)}
                     >
                       <span>
                         <span className="font-medium text-slate-800 dark:text-slate-100">
@@ -194,7 +191,7 @@ export function PainelPage() {
                         </span>
                       </span>
                       <StatusBadge status={o.status} />
-                    </button>
+                    </Link>
                   </li>
                 )
               })}
@@ -212,7 +209,7 @@ export function PainelPage() {
               order={o}
               vehicle={o.vehicle}
               customerName={o.customer.name}
-              onOpen={() => navigate(`/ordens/${o.id}`)}
+              to={`/ordens/${o.id}`}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
             />
@@ -227,7 +224,7 @@ export function PainelPage() {
               order={o}
               vehicle={o.vehicle}
               customerName={o.customer.name}
-              onOpen={() => navigate(`/ordens/${o.id}`)}
+              to={`/ordens/${o.id}`}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
             />
@@ -242,7 +239,7 @@ export function PainelPage() {
               order={o}
               vehicle={o.vehicle}
               customerName={o.customer.name}
-              onOpen={() => navigate(`/ordens/${o.id}`)}
+              to={`/ordens/${o.id}`}
               whatsappLink={buildCarReadyWhatsAppLink({
                 phone: o.customer.phone,
                 customerName: o.customer.name,
@@ -311,7 +308,7 @@ function OrderCard({
   order,
   vehicle,
   customerName,
-  onOpen,
+  to,
   onAction,
   actionPending,
   whatsappLink,
@@ -319,15 +316,20 @@ function OrderCard({
   order: ServiceOrderResponse
   vehicle?: VehicleSummary
   customerName?: string
-  onOpen: () => void
+  /** Rota da ordem: o cartão inteiro abre ao clicar. */
+  to: string
   onAction?: (status: ServiceStatus) => void
   actionPending?: boolean
   whatsappLink?: string | null
 }) {
   const next = NEXT_ACTION[order.status]
+  const openRow = useRowNavigation()
   return (
-    <Card className="p-3">
-      <button type="button" onClick={onOpen} className="block w-full text-left">
+    <Card
+      onClick={openRow(to)}
+      className="cursor-pointer p-3 transition-colors hover:border-indigo-300 dark:hover:border-indigo-700"
+    >
+      <Link to={to} className="block w-full text-left">
         <div className="flex items-center justify-between">
           <span className="font-bold text-slate-900 dark:text-white">
             {vehicle?.plate ? formatPlate(vehicle.plate) : (vehicle ? describeVehicle(vehicle) : 'Veículo')}
@@ -352,7 +354,7 @@ function OrderCard({
             <PaymentBadge status={order.paymentStatus} />
           </div>
         )}
-      </button>
+      </Link>
 
       {next && onAction && (
         <Button

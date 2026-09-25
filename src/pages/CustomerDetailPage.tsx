@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
+import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Pagination } from '@/components/ui/Pagination'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -26,7 +27,6 @@ import type { LoyaltyStatus } from '@/types/loyalty'
 
 export function CustomerDetailPage() {
   const { id = '' } = useParams()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const [editOpen, setEditOpen] = useState(false)
@@ -250,13 +250,11 @@ export function CustomerDetailPage() {
                 const vehicle = order.vehicle
                 const serviceNames = order.items.map((i) => i.name).join(', ')
                 return (
-                  <tr
-                    key={order.id}
-                    className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-                    onClick={() => navigate(`/ordens/${order.id}`)}
-                  >
+                  <LinkRow key={order.id} to={`/ordens/${order.id}`}>
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
-                      {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
+                      <Link to={`/ordens/${order.id}`} className="hover:text-indigo-600 hover:underline">
+                        {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
+                      </Link>
                       <div className="mt-0.5 sm:hidden">
                         <PaymentBadge status={order.paymentStatus} />
                       </div>
@@ -284,7 +282,7 @@ export function CustomerDetailPage() {
                     <td className="hidden px-4 py-2 sm:table-cell">
                       <PaymentBadge status={order.paymentStatus} />
                     </td>
-                  </tr>
+                  </LinkRow>
                 )
               })}
             </tbody>

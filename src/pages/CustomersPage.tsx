@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
+import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Pagination } from '@/components/ui/Pagination'
 import { getApiErrorMessage } from '@/lib/api'
@@ -164,10 +165,7 @@ export function CustomersPage() {
             </thead>
             <tbody>
               {customers.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
-                >
+                <LinkRow key={customer.id} to={`/clientes/${customer.id}`}>
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                     <Link
                       to={`/clientes/${customer.id}`}
@@ -199,7 +197,7 @@ export function CustomersPage() {
                       </Button>
                     </div>
                   </td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </table>

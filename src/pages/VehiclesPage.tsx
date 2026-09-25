@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
+import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Pagination } from '@/components/ui/Pagination'
 import { CustomerPicker, type PickedCustomer } from '@/components/CustomerPicker'
@@ -221,10 +222,7 @@ export function VehiclesPage() {
             </thead>
             <tbody>
               {vehicles.map((vehicle) => (
-                <tr
-                  key={vehicle.id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
-                >
+                <LinkRow key={vehicle.id} to={`/veiculos/${vehicle.id}`}>
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                     <Link
                       to={`/veiculos/${vehicle.id}`}
@@ -259,7 +257,7 @@ export function VehiclesPage() {
                       </Button>
                     </div>
                   </td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </table>

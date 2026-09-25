@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClock, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
+import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
 import { getApiErrorMessage } from '@/lib/api'
@@ -40,7 +41,6 @@ function formatDayHeading(iso: string): string {
 }
 
 export function AgendaPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const p = presets()
   const [from, setFrom] = useState(p.today.from)
@@ -201,17 +201,17 @@ export function AgendaPage() {
             <table className="w-full text-sm">
               <tbody>
                 {dayOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-slate-100 last:border-0 dark:border-slate-800"
-                  >
+                  <LinkRow key={order.id} to={`/ordens/${order.id}`}>
                     <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                       {order.scheduledAt ? formatTime(order.scheduledAt) : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800 dark:text-slate-100">
+                      <Link
+                        to={`/ordens/${order.id}`}
+                        className="font-medium text-slate-800 hover:text-indigo-600 hover:underline dark:text-slate-100"
+                      >
                         {order.customer.name}
-                      </div>
+                      </Link>
                       <div className="text-xs text-slate-400">
                         {describeVehicle(order.vehicle)}
                       </div>
@@ -227,13 +227,6 @@ export function AgendaPage() {
                           <Pencil size={16} />
                         </button>
                         <Button
-                          variant="outline"
-                          className="h-9 px-3"
-                          onClick={() => navigate(`/ordens/${order.id}`)}
-                        >
-                          Abrir
-                        </Button>
-                        <Button
                           className="h-9 px-3"
                           disabled={checkInMutation.isPending}
                           onClick={() => checkInMutation.mutate(order.id)}
@@ -242,7 +235,7 @@ export function AgendaPage() {
                         </Button>
                       </div>
                     </td>
-                  </tr>
+                  </LinkRow>
                 ))}
               </tbody>
             </table>
