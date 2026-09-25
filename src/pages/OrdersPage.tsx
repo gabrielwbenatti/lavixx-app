@@ -1,29 +1,23 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { ClipboardList, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { LinkRow } from '@/components/ui/LinkRow'
-import { Dialog } from '@/components/ui/Dialog'
 import { Pagination } from '@/components/ui/Pagination'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
-import { VehicleSearch } from '@/components/VehicleSearch'
+import { NewOrderDialog } from '@/components/NewOrderDialog'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { useOrderFilters, type OrderFilters } from '@/lib/useOrderFilters'
 import { usePageParam } from '@/lib/usePageParam'
-import { createOrderSchema, type CreateOrderForm } from '@/lib/schemas/serviceOrderSchemas'
-import { createServiceOrder, listServiceOrders } from '@/services/serviceOrderService'
-import { listVehicles } from '@/services/vehicleService'
+import { listServiceOrders } from '@/services/serviceOrderService'
 import {
   SERVICE_STATUSES,
   SERVICE_STATUS_LABELS,
@@ -32,10 +26,7 @@ import {
 
 export function OrdersPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [formKey, setFormKey] = useState(0)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   const { filters, setFilter: setFilterValue, clearFilters: clearFilterValues } = useOrderFilters()
@@ -64,47 +55,9 @@ export function OrdersPage() {
       }),
     placeholderData: keepPreviousData,
   })
-  // Só para saber se já existe algum veículo cadastrado.
-  const vehiclesQuery = useQuery({
-    queryKey: ['vehicles', 'any'],
-    queryFn: () => listVehicles({ size: 1 }),
-  })
 
-  const {
-    handleSubmit,
-    reset,
-    register,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<CreateOrderForm>({ resolver: zodResolver(createOrderSchema) })
 
-  const isScheduled = watch('scheduled')
-
-  const createMutation = useMutation({
-    mutationFn: (form: CreateOrderForm) =>
-      createServiceOrder({
-        vehicleId: form.vehicleId,
-        ...(form.scheduled && form.scheduledAt
-          ? { scheduledAt: new Date(form.scheduledAt).toISOString() }
-          : {}),
-      }),
-    onSuccess: (order) => {
-      queryClient.invalidateQueries({ queryKey: ['service-orders'] })
-      setDialogOpen(false)
-      navigate(`/ordens/${order.id}`)
-    },
-    onError: (err) => setFormError(getApiErrorMessage(err)),
-  })
-
-  const hasVehicles = (vehiclesQuery.data?.totalElements ?? 0) > 0
-
-  const openCreate = () => {
-    setFormError(null)
-    reset({ vehicleId: '', scheduled: false, scheduledAt: '' })
-    setFormKey((k) => k + 1)
-    setDialogOpen(true)
-  }
+  const openCreate = () => setDialogOpen(true)
 
   const orders = ordersQuery.data?.content
 
@@ -126,18 +79,12 @@ export function OrdersPage() {
           <Link to="/atendimento" className="hidden sm:block">
             <Button variant="outline">Atendimento rápido</Button>
           </Link>
-          <Button onClick={openCreate} disabled={!hasVehicles} className="gap-2">
+          <Button onClick={openCreate} className="gap-2">
             <Plus size={16} />
             Nova ordem
           </Button>
         </div>
       </header>
-
-      {!hasVehicles && !vehiclesQuery.isLoading && (
-        <Card className="mb-4 border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          Cadastre um veículo antes de abrir ordens de serviço.
-        </Card>
-      )}
 
       <div className="mb-4 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -300,70 +247,14 @@ export function OrdersPage() {
         <Pagination page={ordersQuery.data} onChange={setPage} label="ordens" />
       )}
 
-      <Dialog
+      <NewOrderDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="Nova ordem de serviço"
-        description="Busque o veículo pela placa (ou apelido/cliente). O cliente é vinculado automaticamente."
-      >
-        {formError && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            {formError}
-          </div>
-        )}
-        <form
-          onSubmit={handleSubmit((form) => {
-            setFormError(null)
-            createMutation.mutate(form)
-          })}
-          className="flex flex-col gap-4"
-          noValidate
-        >
-          <Field label="Buscar veículo" htmlFor="vehicleSearch" error={errors.vehicleId?.message}>
-            <VehicleSearch
-              key={formKey}
-              invalid={!!errors.vehicleId}
-              autoFocus
-              onSelect={(vehicleId) =>
-                setValue('vehicleId', vehicleId, { shouldValidate: true })
-              }
-            />
-          </Field>
-
-          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <input type="checkbox" className="h-4 w-4 rounded" {...register('scheduled')} />
-            Agendar para depois (cliente ainda não chegou)
-          </label>
-
-          {isScheduled && (
-            <Field
-              label="Data e hora do agendamento"
-              htmlFor="scheduledAt"
-              error={errors.scheduledAt?.message}
-            >
-              <Input
-                id="scheduledAt"
-                type="datetime-local"
-                invalid={!!errors.scheduledAt}
-                {...register('scheduledAt')}
-              />
-            </Field>
-          )}
-
-          <div className="mt-2 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending
-                ? 'Salvando…'
-                : isScheduled
-                  ? 'Agendar'
-                  : 'Criar e adicionar itens'}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+        onCreated={(order) => {
+          setDialogOpen(false)
+          navigate(`/ordens/${order.id}`)
+        }}
+      />
     </div>
   )
 }

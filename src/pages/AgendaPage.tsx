@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CalendarClock, Pencil } from 'lucide-react'
+import { CalendarClock, CalendarPlus, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -9,7 +9,9 @@ import { Card } from '@/components/ui/Card'
 import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
+import { NewOrderDialog } from '@/components/NewOrderDialog'
 import { getApiErrorMessage } from '@/lib/api'
+import { useToast } from '@/lib/toastContext'
 import { describeVehicle } from '@/lib/describe'
 import { toDateInput, formatTime, toDateTimeLocalInput } from '@/lib/datetime'
 import {
@@ -32,6 +34,18 @@ function presets() {
   }
 }
 
+/**
+ * Sugestão de data/hora para um novo agendamento: próxima hora cheia de hoje, ou 08:00
+ * do primeiro dia do período exibido, se ele começar no futuro.
+ */
+function suggestScheduledAt(from: string): string {
+  const today = toDateInput(new Date())
+  if (from > today) return `${from}T08:00`
+  const next = new Date()
+  next.setHours(next.getHours() + 1, 0, 0, 0)
+  return toDateTimeLocalInput(next.toISOString())
+}
+
 /** Cabeçalho de grupo por dia: "Segunda-feira, 13/07". */
 function formatDayHeading(iso: string): string {
   const d = new Date(iso)
@@ -48,6 +62,31 @@ export function AgendaPage() {
   const [editingOrder, setEditingOrder] = useState<ServiceOrderResponse | null>(null)
   const [rescheduleValue, setRescheduleValue] = useState('')
   const [rescheduleError, setRescheduleError] = useState<string | null>(null)
+  const [newOpen, setNewOpen] = useState(false)
+  const [newScheduledAt, setNewScheduledAt] = useState('')
+  const { addToast } = useToast()
+
+  const openNew = () => {
+    setNewScheduledAt(suggestScheduledAt(from))
+    setNewOpen(true)
+  }
+
+  const handleCreated = (order: ServiceOrderResponse) => {
+    setNewOpen(false)
+    if (order.scheduledAt) {
+      // Garante que o novo agendamento apareça no período exibido.
+      const day = toDateInput(new Date(order.scheduledAt))
+      if (day < from) setFrom(day)
+      if (day > to) setTo(day)
+      addToast(
+        `Agendado para ${new Date(order.scheduledAt).toLocaleString('pt-BR', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+        })}`,
+        'success',
+      )
+    }
+  }
 
   const invalidRange = from > to
 
@@ -130,10 +169,24 @@ export function AgendaPage() {
             </p>
           </div>
         </div>
-        <Link to="/ordens">
-          <Button variant="outline">Ir para Ordens de serviço</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/ordens" className="hidden sm:block">
+            <Button variant="outline">Ir para Ordens de serviço</Button>
+          </Link>
+          <Button onClick={openNew} className="gap-2">
+            <CalendarPlus size={16} />
+            Novo agendamento
+          </Button>
+        </div>
       </header>
+
+      <NewOrderDialog
+        open={newOpen}
+        scheduledOnly
+        defaultScheduledAt={newScheduledAt}
+        onClose={() => setNewOpen(false)}
+        onCreated={handleCreated}
+      />
 
       {/* Filtro de período */}
       <Card className="mb-6 p-4">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/Input'
 import { describeVehicle } from '@/lib/describe'
@@ -10,6 +11,10 @@ import { VEHICLE_TYPE_LABELS, type VehicleResponse } from '@/types/vehicle'
 
 interface VehicleSearchProps {
   onSelect: (vehicleId: string) => void
+  /** Se informado, oferece "Cadastrar novo veículo" (recebe o texto digitado, ex.: a placa). */
+  onRegisterNew?: (typed: string) => void
+  /** Veículo já selecionado ao montar (ex.: recém-cadastrado). */
+  initialVehicle?: VehicleResponse | null
   invalid?: boolean
   autoFocus?: boolean
 }
@@ -27,13 +32,15 @@ const MAX_RESULTS = 8
  */
 export function VehicleSearch({
   onSelect,
+  onRegisterNew,
+  initialVehicle = null,
   invalid,
   autoFocus,
 }: VehicleSearchProps) {
-  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<VehicleResponse | null>(initialVehicle)
+  const [query, setQuery] = useState(() => (initialVehicle ? label(initialVehicle) : ''))
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
-  const [selected, setSelected] = useState<VehicleResponse | null>(null)
 
   const term = useDebouncedValue(query.trim())
   const searchQuery = useQuery({
@@ -43,11 +50,6 @@ export function VehicleSearch({
     placeholderData: keepPreviousData,
   })
   const matches = term.length >= MIN_CHARS ? (searchQuery.data?.content ?? []) : []
-
-  const label = (v: VehicleResponse) => {
-    const base = v.plate ? `${formatPlate(v.plate)} — ${describeVehicle(v)}` : describeVehicle(v)
-    return `${base} (${v.customerName})`
-  }
 
   const pick = (v: VehicleResponse) => {
     setSelected(v)
@@ -137,7 +139,30 @@ export function VehicleSearch({
               </li>
             ))
           )}
+          {onRegisterNew && (
+            <li className="border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onRegisterNew(query.trim())}
+              >
+                <Plus size={16} />
+                Cadastrar novo veículo
+              </button>
+            </li>
+          )}
         </ul>
+      )}
+
+      {onRegisterNew && !selected && !open && (
+        <button
+          type="button"
+          className="mt-1.5 text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+          onClick={() => onRegisterNew(query.trim())}
+        >
+          Não encontrou? Cadastrar novo veículo
+        </button>
       )}
 
       {selected && (
@@ -151,4 +176,10 @@ export function VehicleSearch({
       )}
     </div>
   )
+}
+
+/** Texto exibido no campo para um veículo escolhido. */
+function label(v: VehicleResponse): string {
+  const base = v.plate ? `${formatPlate(v.plate)} — ${describeVehicle(v)}` : describeVehicle(v)
+  return `${base} (${v.customerName})`
 }

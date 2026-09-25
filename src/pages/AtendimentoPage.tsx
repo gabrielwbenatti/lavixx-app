@@ -5,17 +5,14 @@ import { Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
+import { QuickVehicleForm } from '@/components/QuickVehicleForm'
 import { getApiErrorMessage } from '@/lib/api'
-import { formatCurrency, formatDocument, formatPlate } from '@/lib/format'
-import { maskDocument, maskPhone } from '@/lib/mask'
+import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { normalizePlate } from '@/lib/plate'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
-import { listVehicles, createVehicle } from '@/services/vehicleService'
-import { listCustomers, createCustomer } from '@/services/customerService'
+import { listVehicles } from '@/services/vehicleService'
 import { listServices } from '@/services/serviceService'
 import { listProducts } from '@/services/productService'
 import {
@@ -25,12 +22,7 @@ import {
 } from '@/services/serviceOrderService'
 import { getCurrentTenant } from '@/services/tenantService'
 import { getCustomerLoyalty } from '@/services/customerService'
-import {
-  VEHICLE_TYPES,
-  VEHICLE_TYPE_LABELS,
-  type VehicleResponse,
-  type VehicleType,
-} from '@/types/vehicle'
+import type { VehicleResponse } from '@/types/vehicle'
 
 type Step = 'plate' | 'register' | 'services' | 'review' | 'done'
 
@@ -63,11 +55,6 @@ export function AtendimentoPage() {
   const [useReward, setUseReward] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
-  // Só para saber se já existe algum cliente (define a aba inicial do cadastro rápido).
-  const customersQuery = useQuery({
-    queryKey: ['customers', 'any'],
-    queryFn: () => listCustomers({ size: 1 }),
-  })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
   const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
   const tenantQuery = useQuery({ queryKey: ['tenant-settings'], queryFn: getCurrentTenant })
@@ -273,12 +260,11 @@ export function AtendimentoPage() {
         {step === 'register' && (
           <RegisterStep
             initialPlate={normalizePlate(plateQuery)}
-            hasCustomers={(customersQuery.data?.totalElements ?? 0) > 0}
             onCancel={() => setStep('plate')}
-            onDone={(v, name) => {
+            onDone={(v) => {
               invalidateAll()
               setVehicle(v)
-              setCustomerName(name)
+              setCustomerName(v.customerName)
               setStep('services')
             }}
           />
@@ -408,230 +394,19 @@ function PlateStep({
 /* ========================= Passo 2: Cadastro ========================= */
 function RegisterStep({
   initialPlate,
-  hasCustomers,
   onCancel,
   onDone,
 }: {
   initialPlate: string
-  hasCustomers: boolean
   onCancel: () => void
-  onDone: (vehicle: VehicleResponse, customerName: string) => void
+  onDone: (vehicle: VehicleResponse) => void
 }) {
-  const [customerMode, setCustomerMode] = useState<'existing' | 'new'>(
-    hasCustomers ? 'existing' : 'new',
-  )
-  const [customerSearch, setCustomerSearch] = useState('')
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null)
-  const [newName, setNewName] = useState('')
-  const [newDoc, setNewDoc] = useState('')
-  const [newPhone, setNewPhone] = useState('')
-
-  const [type, setType] = useState<VehicleType>('car')
-  const [plate, setPlate] = useState(initialPlate)
-  const [nickname, setNickname] = useState('')
-  const [manufacturer, setManufacturer] = useState('')
-  const [model, setModel] = useState('')
-  const [color, setColor] = useState('')
-
-  const [error, setError] = useState<string | null>(null)
-
-  const customerTerm = useDebouncedValue(customerSearch.trim())
-  const customerSearchQuery = useQuery({
-    queryKey: ['customers', 'search', customerTerm, 6],
-    queryFn: () => listCustomers({ search: customerTerm || undefined, size: 6 }),
-    enabled: customerMode === 'existing',
-    placeholderData: keepPreviousData,
-  })
-  const filteredCustomers = customerSearchQuery.data?.content ?? []
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      let customerId = selectedCustomer?.id ?? ''
-      let name = selectedCustomer?.name ?? ''
-      if (customerMode === 'new') {
-        const created = await createCustomer({
-          name: newName.trim(),
-          document: newDoc.replace(/\D/g, '') || undefined,
-          phone: newPhone.replace(/\D/g, '') || undefined,
-        })
-        customerId = created.id
-        name = created.name
-      }
-      const created = await createVehicle({
-        customerId,
-        type,
-        plate: plate.trim() || undefined,
-        nickname: nickname.trim() || undefined,
-        manufacturer: manufacturer.trim() || undefined,
-        model: model.trim() || undefined,
-        color: color.trim() || undefined,
-      })
-      return { vehicle: created, customerName: name }
-    },
-    onSuccess: ({ vehicle, customerName }) => onDone(vehicle, customerName),
-    onError: (err) => setError(getApiErrorMessage(err)),
-  })
-
-  const handleSubmit = () => {
-    setError(null)
-    if (customerMode === 'existing' && !selectedCustomer) {
-      setError('Selecione um cliente ou cadastre um novo.')
-      return
-    }
-    if (customerMode === 'new' && !newName.trim()) {
-      setError('Informe o nome do cliente.')
-      return
-    }
-    mutation.mutate()
-  }
-
   return (
     <div>
       <h1 className="mb-6 text-center text-2xl font-bold text-slate-900 dark:text-white">
         Cadastro rápido
       </h1>
-
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </div>
-      )}
-
-      {/* Cliente */}
-      <Card className="mb-4 p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-800 dark:text-slate-100">Cliente</h2>
-          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-            <button
-              type="button"
-              onClick={() => setCustomerMode('existing')}
-              className={
-                customerMode === 'existing'
-                  ? 'rounded-md bg-white px-3 py-1 text-sm font-medium text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
-                  : 'px-3 py-1 text-sm text-slate-500'
-              }
-            >
-              Existente
-            </button>
-            <button
-              type="button"
-              onClick={() => setCustomerMode('new')}
-              className={
-                customerMode === 'new'
-                  ? 'rounded-md bg-white px-3 py-1 text-sm font-medium text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
-                  : 'px-3 py-1 text-sm text-slate-500'
-              }
-            >
-              Novo
-            </button>
-          </div>
-        </div>
-
-        {customerMode === 'existing' ? (
-          <div>
-            <Input
-              placeholder="Buscar por nome, telefone ou CPF/CNPJ…"
-              value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
-            />
-            <div className="mt-2 space-y-1">
-              {filteredCustomers.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setSelectedCustomer({ id: c.id, name: c.name })}
-                  className={
-                    selectedCustomer?.id === c.id
-                      ? 'flex w-full items-center justify-between rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-left text-sm dark:border-indigo-700 dark:bg-indigo-950'
-                      : 'flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
-                  }
-                >
-                  <span className="font-medium text-slate-800 dark:text-slate-100">{c.name}</span>
-                  <span className="text-xs text-slate-400">{formatDocument(c.document)}</span>
-                </button>
-              ))}
-              {filteredCustomers.length === 0 && !customerSearchQuery.isFetching && (
-                <p className="px-1 py-2 text-sm text-slate-400">
-                  Nenhum cliente. Use a aba “Novo”.
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Nome do cliente" htmlFor="newName">
-              <Input id="newName" value={newName} onChange={(e) => setNewName(e.target.value)} />
-            </Field>
-            <Field label="Telefone (opcional)" htmlFor="newPhone">
-              <Input
-                id="newPhone"
-                inputMode="tel"
-                placeholder="(11) 91234-5678"
-                value={newPhone}
-                onChange={(e) => setNewPhone(maskPhone(e.target.value))}
-              />
-            </Field>
-            <Field label="CPF/CNPJ (opcional)" htmlFor="newDoc">
-              <Input
-                id="newDoc"
-                inputMode="numeric"
-                placeholder="000.000.000-00"
-                value={newDoc}
-                onChange={(e) => setNewDoc(maskDocument(e.target.value))}
-              />
-            </Field>
-          </div>
-        )}
-      </Card>
-
-      {/* Veículo */}
-      <Card className="mb-6 p-5">
-        <h2 className="mb-3 font-semibold text-slate-800 dark:text-slate-100">Veículo</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Tipo" htmlFor="vType">
-            <Select id="vType" value={type} onChange={(e) => setType(e.target.value as VehicleType)}>
-              {VEHICLE_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {VEHICLE_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Placa" htmlFor="vPlate">
-            <Input
-              id="vPlate"
-              value={plate}
-              onChange={(e) => setPlate(e.target.value.toUpperCase())}
-              className="uppercase"
-            />
-          </Field>
-          <Field label="Apelido" htmlFor="vNickname">
-            <Input id="vNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} />
-          </Field>
-          <Field label="Cor" htmlFor="vColor">
-            <Input id="vColor" value={color} onChange={(e) => setColor(e.target.value)} />
-          </Field>
-          <Field label="Fabricante" htmlFor="vManufacturer">
-            <Input
-              id="vManufacturer"
-              value={manufacturer}
-              onChange={(e) => setManufacturer(e.target.value)}
-            />
-          </Field>
-          <Field label="Modelo" htmlFor="vModel">
-            <Input id="vModel" value={model} onChange={(e) => setModel(e.target.value)} />
-          </Field>
-        </div>
-      </Card>
-
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onCancel}>
-          Voltar
-        </Button>
-        <Button onClick={handleSubmit} disabled={mutation.isPending}>
-          {mutation.isPending ? 'Salvando…' : 'Continuar'}
-        </Button>
-      </div>
+      <QuickVehicleForm initialPlate={initialPlate} onCancel={onCancel} onCreated={onDone} />
     </div>
   )
 }
