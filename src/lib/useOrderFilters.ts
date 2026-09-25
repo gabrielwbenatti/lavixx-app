@@ -13,7 +13,7 @@ export interface OrderFilters {
 export function useOrderFilters(initialFilters?: OrderFilters) {
   const [filters, setFilters] = useState<OrderFilters>(initialFilters || {})
 
-  const setFilter = useCallback((key: keyof OrderFilters, value: any) => {
+  const setFilter = useCallback(<K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value || undefined,

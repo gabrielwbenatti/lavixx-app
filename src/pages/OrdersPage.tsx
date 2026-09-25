@@ -25,6 +25,7 @@ import { listCustomers } from '@/services/customerService'
 import {
   SERVICE_STATUSES,
   SERVICE_STATUS_LABELS,
+  type ServiceStatus,
 } from '@/types/serviceOrder'
 
 export function OrdersPage() {
@@ -143,7 +144,7 @@ export function OrdersPage() {
             id="statusFilter"
             className="h-9 w-48"
             value={filters.status || ''}
-            onChange={(e) => setFilter('status', e.target.value || undefined)}
+            onChange={(e) => setFilter('status', (e.target.value || undefined) as ServiceStatus | undefined)}
           >
             <option value="">Todas</option>
             {SERVICE_STATUSES.map((s) => (

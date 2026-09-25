@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
@@ -66,6 +67,7 @@ const navSections: NavSection[] = [
 export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const tenantName = getTenantName()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -82,6 +84,8 @@ export function AppLayout() {
 
   const handleLogout = () => {
     clearSession()
+    // Evita que o proximo usuario veja dados em cache do anterior.
+    queryClient.clear()
     navigate('/', { replace: true })
   }
 

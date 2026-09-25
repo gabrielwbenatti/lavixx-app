@@ -18,7 +18,8 @@ export function LoginPage() {
   const [apiError, setApiError] = useState<string | null>(null)
 
   // Rota que o usuário tentava acessar antes de ser redirecionado ao login.
-  const from = (location.state as { from?: string } | null)?.from ?? '/home'
+  const state = location.state as { from?: string; expired?: boolean } | null
+  const from = state?.from ?? '/home'
 
   const {
     register,
@@ -33,7 +34,7 @@ export function LoginPage() {
     setApiError(null)
     try {
       const response = await login({ email: form.email, password: form.password })
-      saveSession(response.token, undefined, response.role)
+      saveSession(response.token, response.tenantName, response.role)
       navigate(from, { replace: true })
     } catch (error) {
       setApiError(getApiErrorMessage(error))
@@ -49,6 +50,12 @@ export function LoginPage() {
             Acesse o painel do seu estabelecimento.
           </p>
         </div>
+
+        {state?.expired && !apiError && (
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+            Sua sessão expirou. Entre novamente para continuar.
+          </div>
+        )}
 
         {apiError && (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">

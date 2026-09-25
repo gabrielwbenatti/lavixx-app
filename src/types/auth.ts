@@ -11,6 +11,7 @@ export interface LoginResponse {
   token: string
   userId: string
   tenantId: string
+  tenantName: string
   email: string
   role: string
 }

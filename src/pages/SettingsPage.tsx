@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { getApiErrorMessage } from '@/lib/api'
 import { useToast } from '@/lib/toastContext'
+import { setTenantName } from '@/lib/auth'
 import { formatDocument } from '@/lib/format'
 
 const api = (await import('@/lib/api')).api
@@ -88,6 +89,7 @@ export function SettingsPage() {
     mutationFn: updateTenantSettings,
     onSuccess: (updated) => {
       queryClient.setQueryData(['tenant-settings'], updated)
+      setTenantName(updated.name)
       addToast('Configurações salvas com sucesso', 'success')
     },
     onError: (err) => {

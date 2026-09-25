@@ -19,12 +19,24 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Se a API responder 401, a sessao expirou/invalidou -> limpa o token.
+let onUnauthorized: (() => void) | null = null
+
+/**
+ * Registra o que fazer quando a sessao cair (401 numa requisicao autenticada).
+ * Fica fora deste modulo para o cliente HTTP nao depender do router.
+ */
+export function setUnauthorizedHandler(handler: () => void): void {
+  onUnauthorized = handler
+}
+
+// Se a API responder 401 a uma requisicao que levava token, a sessao expirou/invalidou.
+// Requisicoes sem token (ex.: login com senha errada) apenas propagam o erro.
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && error.config?.headers.Authorization) {
       clearSession()
+      onUnauthorized?.()
     }
     return Promise.reject(error)
   },

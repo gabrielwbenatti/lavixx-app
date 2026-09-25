@@ -8,5 +8,5 @@ export function ProtectedRoute() {
     return <Outlet />
   }
   // Guarda a rota atual para retornar a ela apos o login.
-  return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
 }
