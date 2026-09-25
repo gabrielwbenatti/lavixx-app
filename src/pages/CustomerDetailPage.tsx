@@ -105,7 +105,7 @@ export function CustomerDetailPage() {
   }
   if (customerQuery.isError || !customerQuery.data) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <p className="text-sm text-red-500">{getApiErrorMessage(customerQuery.error)}</p>
         <Link to="/clientes" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           ← Voltar para clientes
@@ -119,7 +119,7 @@ export function CustomerDetailPage() {
   const stats = statsQuery.data
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <Link to="/clientes" className="mb-4 inline-block text-sm text-indigo-600 hover:underline">
         ← Voltar para clientes
       </Link>

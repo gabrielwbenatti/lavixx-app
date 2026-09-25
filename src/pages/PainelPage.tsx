@@ -107,7 +107,7 @@ export function PainelPage() {
   })
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Painel do dia</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">

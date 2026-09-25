@@ -190,7 +190,10 @@ export function AppLayout() {
       </aside>
 
       <main className="flex-1 overflow-x-hidden px-4 pb-8 pt-20 md:px-8 md:py-8 md:pt-8">
-        <Outlet />
+        {/* Largura única do conteúdo de todas as páginas do painel (não defina max-w nas páginas). */}
+        <div className="mx-auto w-full max-w-6xl">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

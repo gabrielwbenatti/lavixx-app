@@ -34,7 +34,7 @@ export function HomePage() {
     productsQuery.data.length === 0
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <header className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
           Bem-vindo{tenantName ? `, ${tenantName}` : ''}!

@@ -123,7 +123,7 @@ export function UsersPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <header className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">

@@ -155,7 +155,7 @@ export function AgendaPage() {
   }, [orders])
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-950 dark:text-violet-400">

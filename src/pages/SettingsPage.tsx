@@ -106,7 +106,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div>
       <header className="mb-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
           <Settings size={20} strokeWidth={1.75} />
@@ -119,7 +119,8 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <Card className="p-6">
+      {/* Formulário: largura limitada para os campos não ficarem longos demais. */}
+      <Card className="max-w-2xl p-6">
         <form
           onSubmit={handleSubmit((form) => updateMutation.mutate(form))}
           className="flex flex-col gap-4"

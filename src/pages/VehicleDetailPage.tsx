@@ -122,7 +122,7 @@ export function VehicleDetailPage() {
   }
   if (vehicleQuery.isError || !vehicleQuery.data) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <p className="text-sm text-red-500">{getApiErrorMessage(vehicleQuery.error)}</p>
         <Link to="/veiculos" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           ← Voltar para veículos
@@ -136,7 +136,7 @@ export function VehicleDetailPage() {
   const stats = statsQuery.data
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <Link to="/veiculos" className="mb-4 inline-block text-sm text-indigo-600 hover:underline">
         ← Voltar para veículos
       </Link>

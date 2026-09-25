@@ -291,7 +291,7 @@ export function OrderDetailPage() {
   }
   if (orderQuery.isError || !orderQuery.data) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <p className="text-sm text-red-500">{getApiErrorMessage(orderQuery.error)}</p>
         <Link to="/ordens" className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
           ← Voltar para ordens
@@ -441,7 +441,7 @@ export function OrderDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <Link to="/ordens" className="mb-4 inline-block text-sm text-indigo-600 hover:underline">
         ← Voltar para ordens
       </Link>
