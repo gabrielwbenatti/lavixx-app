@@ -2,18 +2,21 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { UserPlus, Users } from 'lucide-react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Search, UserPlus, Users } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Pagination } from '@/components/ui/Pagination'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatDocument, formatPhone } from '@/lib/format'
 import { maskDocument, maskPhone, withMask } from '@/lib/mask'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
+import { usePageParam } from '@/lib/usePageParam'
 import {
   createCustomer,
   deleteCustomer,
@@ -28,12 +31,16 @@ export function CustomersPage() {
   const [editing, setEditing] = useState<CustomerResponse | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const {
-    data: customers,
-    isLoading,
-    isError,
-    error,
-  } = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  const [search, setSearch] = useState('')
+  const [page, setPage] = usePageParam()
+  const term = useDebouncedValue(search.trim())
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['customers', { search: term, page }],
+    queryFn: () => listCustomers({ search: term || undefined, page }),
+    placeholderData: keepPreviousData,
+  })
+  const customers = data?.content
 
   const {
     register,
@@ -115,12 +122,32 @@ export function CustomersPage() {
         </Button>
       </header>
 
+      <div className="relative mb-4 max-w-sm">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <Input
+          type="search"
+          placeholder="Buscar por nome, telefone ou CPF/CNPJ…"
+          className="pl-9"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(0)
+          }}
+          aria-label="Buscar clientes"
+        />
+      </div>
+
       {isLoading && <p className="text-sm text-slate-500">Carregando…</p>}
       {isError && <p className="text-sm text-red-500">{getApiErrorMessage(error)}</p>}
 
       {customers && customers.length === 0 && (
         <Card className="p-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          Nenhum cliente cadastrado ainda. Clique em “Novo cliente”.
+          {term
+            ? 'Nenhum cliente encontrado para essa busca.'
+            : 'Nenhum cliente cadastrado ainda. Clique em “Novo cliente”.'}
         </Card>
       )}
 
@@ -178,6 +205,8 @@ export function CustomersPage() {
           </table>
         </Card>
       )}
+
+      {data && <Pagination page={data} onChange={setPage} label="clientes" />}
 
       <Dialog
         open={dialogOpen}

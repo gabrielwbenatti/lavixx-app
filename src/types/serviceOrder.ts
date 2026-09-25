@@ -1,6 +1,8 @@
 /** Espelha os DTOs de ordem de serviço da API. */
 
+import type { CustomerSummary } from '@/types/customer'
 import type { PaymentResponse, PaymentStatus } from '@/types/payment'
+import type { VehicleSummary } from '@/types/vehicle'
 
 export const SERVICE_STATUSES = ['scheduled', 'waiting', 'in_progress', 'done', 'cancelled'] as const
 export type ServiceStatus = (typeof SERVICE_STATUSES)[number]
@@ -59,6 +61,8 @@ export interface ServiceOrderResponse {
   id: string
   customerId: string
   vehicleId: string
+  customer: CustomerSummary
+  vehicle: VehicleSummary
   status: ServiceStatus
   items: ServiceOrderItemResponse[]
   /** Soma dos itens, sem descontos/taxa. */
@@ -84,6 +88,14 @@ export interface ServiceOrderResponse {
   createdAt: string
   updatedAt: string
   finishedAt: string | null
+}
+
+/** Resposta de GET /service-orders/stats. */
+export interface ServiceOrderStats {
+  totalOrders: number
+  completedOrders: number
+  /** Soma dos pagamentos das ordens concluídas. */
+  paidTotal: number
 }
 
 export interface UpdateItemRequest {

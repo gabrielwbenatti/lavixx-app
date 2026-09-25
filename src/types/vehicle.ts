@@ -24,9 +24,9 @@ export interface VehicleRequest {
   year?: number
 }
 
-export interface VehicleResponse {
+/** Dados do veículo embutidos em outras respostas (ex.: ordem de serviço). */
+export interface VehicleSummary {
   id: string
-  customerId: string
   type: VehicleType
   plate: string | null
   identifier: string | null
@@ -35,6 +35,11 @@ export interface VehicleResponse {
   model: string | null
   color: string | null
   year: number | null
+}
+
+export interface VehicleResponse extends VehicleSummary {
+  customerId: string
+  customerName: string
   createdAt: string
   updatedAt: string
 }

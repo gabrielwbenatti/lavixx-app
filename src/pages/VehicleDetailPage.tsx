@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Pagination } from '@/components/ui/Pagination'
+import { CustomerPicker, type PickedCustomer } from '@/components/CustomerPicker'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { getApiErrorMessage } from '@/lib/api'
@@ -17,9 +19,9 @@ import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
 import { vehicleSchema, type VehicleForm } from '@/lib/schemas/vehicleSchema'
 import { getVehicle, updateVehicle } from '@/services/vehicleService'
-import { useOrderFilters } from '@/lib/useOrderFilters'
-import { listCustomers } from '@/services/customerService'
-import { listServiceOrders } from '@/services/serviceOrderService'
+import { useOrderFilters, type OrderFilters } from '@/lib/useOrderFilters'
+import { usePageParam } from '@/lib/usePageParam'
+import { getServiceOrderStats, listServiceOrders } from '@/services/serviceOrderService'
 import { VEHICLE_TYPES, VEHICLE_TYPE_LABELS, type VehicleRequest } from '@/types/vehicle'
 
 export function VehicleDetailPage() {
@@ -29,28 +31,48 @@ export function VehicleDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const { filters, setFilter, clearFilters } = useOrderFilters()
+  const [owner, setOwner] = useState<PickedCustomer | null>(null)
+  const [formKey, setFormKey] = useState(0)
+  const { filters, setFilter: setFilterValue, clearFilters: clearFilterValues } = useOrderFilters()
+  const [page, setPage] = usePageParam()
+
+  // Mudar o período volta para a primeira página.
+  const setFilter = <K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) => {
+    setFilterValue(key, value)
+    setPage(0)
+  }
+  const clearFilters = () => {
+    clearFilterValues()
+    setPage(0)
+  }
 
   const vehicleQuery = useQuery({
     queryKey: ['vehicle', id],
     queryFn: () => getVehicle(id),
   })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  const period = {
+    vehicleId: id,
+    fromDate: filters.fromDate && `${filters.fromDate}T00:00:00Z`,
+    toDate: filters.toDate && `${filters.toDate}T23:59:59Z`,
+  }
   const ordersQuery = useQuery({
-    queryKey: ['service-orders', 'by-vehicle', id, JSON.stringify(filters)],
-    queryFn: () => {
-      const queryParams = {
-        vehicleId: id,
-        ...(filters.fromDate && { fromDate: `${filters.fromDate}T00:00:00Z` }),
-        ...(filters.toDate && { toDate: `${filters.toDate}T23:59:59Z` }),
-      }
-      return listServiceOrders(queryParams)
-    },
+    queryKey: ['service-orders', 'by-vehicle', id, filters, page],
+    queryFn: () => listServiceOrders({ ...period, page }),
+    placeholderData: keepPreviousData,
+  })
+  const statsQuery = useQuery({
+    queryKey: ['service-orders', 'stats', 'by-vehicle', id, filters],
+    queryFn: () => getServiceOrderStats(period),
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<VehicleForm>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<VehicleForm>({
     resolver: zodResolver(vehicleSchema),
   })
+
+  const pickOwner = (customer: PickedCustomer | null) => {
+    setOwner(customer)
+    setValue('customerId', customer?.id ?? '', { shouldValidate: true })
+  }
 
   const editMutation = useMutation({
     mutationFn: (form: VehicleForm) => {
@@ -79,6 +101,8 @@ export function VehicleDetailPage() {
     const v = vehicleQuery.data
     if (!v) return
     setFormError(null)
+    setOwner({ id: v.customerId, name: v.customerName })
+    setFormKey((k) => k + 1)
     reset({
       customerId: v.customerId,
       type: v.type,
@@ -108,10 +132,8 @@ export function VehicleDetailPage() {
   }
 
   const vehicle = vehicleQuery.data
-  const customer = customersQuery.data?.find((c) => c.id === vehicle.customerId)
-  const orders = (ordersQuery.data ?? []).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const totalSpent = orders.filter((o) => o.status === 'done').reduce((s, o) => s + o.paidTotal, 0)
-  const completedCount = orders.filter((o) => o.status === 'done').length
+  const orders = ordersQuery.data?.content ?? []
+  const stats = statsQuery.data
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -130,14 +152,12 @@ export function VehicleDetailPage() {
               {vehicle.plate && <span>Placa: {formatPlate(vehicle.plate)}</span>}
               {vehicle.color && <span>{vehicle.color}</span>}
               {vehicle.year && <span>{vehicle.year}</span>}
-              {customer && (
-                <Link
-                  to={`/clientes/${customer.id}`}
-                  className="text-indigo-600 hover:underline"
-                >
-                  {customer.name}
-                </Link>
-              )}
+              <Link
+                to={`/clientes/${vehicle.customerId}`}
+                className="text-indigo-600 hover:underline"
+              >
+                {vehicle.customerName}
+              </Link>
             </div>
           </div>
           <Button variant="outline" onClick={openEdit}>
@@ -148,16 +168,16 @@ export function VehicleDetailPage() {
         <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 dark:border-slate-800">
           <div>
             <div className="text-xs text-slate-400">Total de ordens</div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{orders.length}</div>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{stats?.totalOrders ?? '—'}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400">Concluídas</div>
-            <div className="text-lg font-bold text-green-700 dark:text-green-400">{completedCount}</div>
+            <div className="text-lg font-bold text-green-700 dark:text-green-400">{stats?.completedOrders ?? '—'}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400">Total pago</div>
             <div className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
-              {formatCurrency(totalSpent)}
+              {stats ? formatCurrency(stats.paidTotal) : '—'}
             </div>
           </div>
         </div>
@@ -228,7 +248,7 @@ export function VehicleDetailPage() {
                     onClick={() => navigate(`/ordens/${order.id}`)}
                   >
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
-                      {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
                       <div className="mt-0.5 sm:hidden">
                         <PaymentBadge status={order.paymentStatus} />
                       </div>
@@ -253,6 +273,10 @@ export function VehicleDetailPage() {
         )}
       </Card>
 
+      {ordersQuery.data && (
+        <Pagination page={ordersQuery.data} onChange={setPage} label="ordens" />
+      )}
+
       {/* Dialog de edição */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Editar veículo">
         {formError && (
@@ -270,12 +294,13 @@ export function VehicleDetailPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Cliente" htmlFor="customerId" error={errors.customerId?.message}>
-              <Select id="customerId" invalid={!!errors.customerId} {...register('customerId')}>
-                <option value="">Selecione…</option>
-                {customersQuery.data?.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </Select>
+              <CustomerPicker
+                key={formKey}
+                id="customerId"
+                value={owner}
+                onChange={pickOwner}
+                invalid={!!errors.customerId}
+              />
             </Field>
             <Field label="Tipo" htmlFor="type" error={errors.type?.message}>
               <Select id="type" invalid={!!errors.type} {...register('type')}>

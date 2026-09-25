@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
@@ -9,17 +9,19 @@ import { Input } from '@/components/ui/Input'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Pagination } from '@/components/ui/Pagination'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatDocument, formatPhone, formatPlate } from '@/lib/format'
 import { maskDocument, maskPhone, withMask } from '@/lib/mask'
 import { describeVehicle } from '@/lib/describe'
-import { useOrderFilters } from '@/lib/useOrderFilters'
+import { useOrderFilters, type OrderFilters } from '@/lib/useOrderFilters'
+import { usePageParam } from '@/lib/usePageParam'
 import { customerSchema, type CustomerForm } from '@/lib/schemas/customerSchema'
 import { getCustomer, getCustomerLoyalty, updateCustomer } from '@/services/customerService'
 import { listVehicles } from '@/services/vehicleService'
-import { listServiceOrders } from '@/services/serviceOrderService'
+import { getServiceOrderStats, listServiceOrders } from '@/services/serviceOrderService'
 import type { LoyaltyStatus } from '@/types/loyalty'
 
 export function CustomerDetailPage() {
@@ -29,7 +31,18 @@ export function CustomerDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const { filters, setFilter, clearFilters } = useOrderFilters()
+  const { filters, setFilter: setFilterValue, clearFilters: clearFilterValues } = useOrderFilters()
+  const [page, setPage] = usePageParam()
+
+  // Mudar o período volta para a primeira página.
+  const setFilter = <K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) => {
+    setFilterValue(key, value)
+    setPage(0)
+  }
+  const clearFilters = () => {
+    clearFilterValues()
+    setPage(0)
+  }
 
   const customerQuery = useQuery({
     queryKey: ['customer', id],
@@ -39,20 +52,26 @@ export function CustomerDetailPage() {
     queryKey: ['customer-loyalty', id],
     queryFn: () => getCustomerLoyalty(id),
   })
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
+  const vehiclesQuery = useQuery({
+    queryKey: ['vehicles', { customerId: id }],
+    queryFn: () => listVehicles({ customerId: id, size: 100 }),
+  })
+  const period = {
+    customerId: id,
+    fromDate: filters.fromDate && `${filters.fromDate}T00:00:00Z`,
+    toDate: filters.toDate && `${filters.toDate}T23:59:59Z`,
+  }
   const ordersQuery = useQuery({
-    queryKey: ['service-orders', 'by-customer', id, JSON.stringify(filters)],
-    queryFn: () => {
-      const queryParams = {
-        customerId: id,
-        ...(filters.fromDate && { fromDate: `${filters.fromDate}T00:00:00Z` }),
-        ...(filters.toDate && { toDate: `${filters.toDate}T23:59:59Z` }),
-      }
-      return listServiceOrders(queryParams)
-    },
+    queryKey: ['service-orders', 'by-customer', id, filters, page],
+    queryFn: () => listServiceOrders({ ...period, page }),
+    placeholderData: keepPreviousData,
+  })
+  const statsQuery = useQuery({
+    queryKey: ['service-orders', 'stats', 'by-customer', id, filters],
+    queryFn: () => getServiceOrderStats(period),
   })
 
-  const customerVehicles = (vehiclesQuery.data ?? []).filter((v) => v.customerId === id)
+  const customerVehicles = vehiclesQuery.data?.content ?? []
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerForm>({
     resolver: zodResolver(customerSchema),
@@ -96,9 +115,8 @@ export function CustomerDetailPage() {
   }
 
   const customer = customerQuery.data
-  const orders = (ordersQuery.data ?? []).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const totalSpent = orders.filter((o) => o.status === 'done').reduce((s, o) => s + o.paidTotal, 0)
-  const completedCount = orders.filter((o) => o.status === 'done').length
+  const orders = ordersQuery.data?.content ?? []
+  const stats = statsQuery.data
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -124,16 +142,16 @@ export function CustomerDetailPage() {
         <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 dark:border-slate-800">
           <div>
             <div className="text-xs text-slate-400">Total de ordens</div>
-            <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{orders.length}</div>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{stats?.totalOrders ?? '—'}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400">Concluídas</div>
-            <div className="text-lg font-bold text-green-700 dark:text-green-400">{completedCount}</div>
+            <div className="text-lg font-bold text-green-700 dark:text-green-400">{stats?.completedOrders ?? '—'}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400">Total pago</div>
             <div className="text-lg font-bold text-indigo-700 dark:text-indigo-300">
-              {formatCurrency(totalSpent)}
+              {stats ? formatCurrency(stats.paidTotal) : '—'}
             </div>
           </div>
         </div>
@@ -229,7 +247,7 @@ export function CustomerDetailPage() {
             </thead>
             <tbody>
               {orders.map((order) => {
-                const vehicle = vehiclesQuery.data?.find((v) => v.id === order.vehicleId)
+                const vehicle = order.vehicle
                 const serviceNames = order.items.map((i) => i.name).join(', ')
                 return (
                   <tr
@@ -238,23 +256,21 @@ export function CustomerDetailPage() {
                     onClick={() => navigate(`/ordens/${order.id}`)}
                   >
                     <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
-                      {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(order.issuedAt).toLocaleDateString('pt-BR')}
                       <div className="mt-0.5 sm:hidden">
                         <PaymentBadge status={order.paymentStatus} />
                       </div>
                     </td>
                     <td className="hidden px-4 py-2 text-slate-600 dark:text-slate-300 sm:table-cell">
-                      {vehicle ? (
-                        <Link
-                          to={`/veiculos/${vehicle.id}`}
-                          className="text-indigo-600 hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {formatPlate(vehicle.plate) !== '—'
-                            ? formatPlate(vehicle.plate)
-                            : describeVehicle(vehicle)}
-                        </Link>
-                      ) : '—'}
+                      <Link
+                        to={`/veiculos/${vehicle.id}`}
+                        className="text-indigo-600 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {formatPlate(vehicle.plate) !== '—'
+                          ? formatPlate(vehicle.plate)
+                          : describeVehicle(vehicle)}
+                      </Link>
                     </td>
                     <td className="hidden max-w-[200px] truncate px-4 py-2 text-slate-600 dark:text-slate-300 md:table-cell">
                       {serviceNames || '—'}
@@ -275,6 +291,10 @@ export function CustomerDetailPage() {
           </table>
         )}
       </Card>
+
+      {ordersQuery.data && (
+        <Pagination page={ordersQuery.data} onChange={setPage} label="ordens" />
+      )}
 
       {/* Dialog de edição */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Editar cliente">

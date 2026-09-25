@@ -1,9 +1,13 @@
 import { api } from '@/lib/api'
 import type { CustomerRequest, CustomerResponse } from '@/types/customer'
 import type { LoyaltyStatus } from '@/types/loyalty'
+import type { Page, PageParams } from '@/types/page'
 
-export async function listCustomers(): Promise<CustomerResponse[]> {
-  const { data } = await api.get<CustomerResponse[]>('/customers')
+/** GET /customers — paginado; `search` busca por nome, documento ou telefone. */
+export async function listCustomers(
+  params?: PageParams & { search?: string },
+): Promise<Page<CustomerResponse>> {
+  const { data } = await api.get<Page<CustomerResponse>>('/customers', { params })
   return data
 }
 

@@ -4,7 +4,7 @@
  * API oficial — o dono só confirma o envio.
  */
 
-import type { VehicleResponse } from '@/types/vehicle'
+import type { VehicleSummary } from '@/types/vehicle'
 import { describeVehicle } from '@/lib/describe'
 import { formatPlate } from '@/lib/format'
 
@@ -25,7 +25,7 @@ export function normalizeBrazilPhone(phone: string | null | undefined): string |
 }
 
 /** Rótulo do veículo para a mensagem, evitando repetir a placa. */
-function vehicleLabel(vehicle?: VehicleResponse): string {
+function vehicleLabel(vehicle?: VehicleSummary): string {
   if (!vehicle) return ''
   const desc = describeVehicle(vehicle)
   const plate = vehicle.plate ? formatPlate(vehicle.plate) : null
@@ -41,7 +41,7 @@ export interface CarReadyItem {
 /** Texto padrão do aviso de "carro pronto", listando os serviços/produtos da OS. */
 export function buildCarReadyMessage(params: {
   customerName?: string | null
-  vehicle?: VehicleResponse
+  vehicle?: VehicleSummary
   establishmentName?: string | null
   items?: CarReadyItem[]
 }): string {
@@ -67,7 +67,7 @@ export function buildCarReadyMessage(params: {
 export function buildCarReadyWhatsAppLink(params: {
   phone: string | null | undefined
   customerName?: string | null
-  vehicle?: VehicleResponse
+  vehicle?: VehicleSummary
   establishmentName?: string | null
   items?: CarReadyItem[]
 }): string | null {

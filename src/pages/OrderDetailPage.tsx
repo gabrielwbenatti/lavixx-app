@@ -56,8 +56,7 @@ import {
 } from '@/services/serviceOrderService'
 import { listServices } from '@/services/serviceService'
 import { listProducts } from '@/services/productService'
-import { listVehicles } from '@/services/vehicleService'
-import { listCustomers, getCustomerLoyalty } from '@/services/customerService'
+import { getCustomerLoyalty } from '@/services/customerService'
 import { listPaymentMethods } from '@/services/paymentMethodService'
 import { getCurrentTenant } from '@/services/tenantService'
 import {
@@ -110,8 +109,6 @@ export function OrderDetailPage() {
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
   const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const paymentMethodsQuery = useQuery({
     queryKey: ['payment-methods'],
     queryFn: listPaymentMethods,
@@ -305,9 +302,9 @@ export function OrderDetailPage() {
 
   const order = orderQuery.data
   const editable = EDITABLE_STATUSES.includes(order.status)
-  const customer = customersQuery.data?.find((c) => c.id === order.customerId)
-  const customerName = customer?.name
-  const vehicle = vehiclesQuery.data?.find((v) => v.id === order.vehicleId)
+  const customer = order.customer
+  const customerName = customer.name
+  const vehicle = order.vehicle
 
   const whatsappLink =
     order.status !== 'cancelled'

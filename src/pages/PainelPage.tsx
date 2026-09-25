@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -10,7 +9,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
-import { isToday, formatTime, timeAgo, toDateInput } from '@/lib/datetime'
+import { formatTime, timeAgo, toDateInput } from '@/lib/datetime'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import {
   listPickupEstimates,
@@ -18,12 +17,9 @@ import {
   listServiceOrders,
   updateServiceOrderStatus,
 } from '@/services/serviceOrderService'
-import { listVehicles } from '@/services/vehicleService'
-import { listCustomers } from '@/services/customerService'
 import { getCurrentTenant } from '@/services/tenantService'
 import type { ServiceOrderResponse, ServiceStatus } from '@/types/serviceOrder'
-import type { VehicleResponse } from '@/types/vehicle'
-import type { CustomerResponse } from '@/types/customer'
+import type { VehicleSummary } from '@/types/vehicle'
 
 /** Ação principal (próximo passo) de cada status, mostrada no cartão. */
 const NEXT_ACTION: Partial<Record<ServiceStatus, { label: string; target: ServiceStatus }>> = {
@@ -31,54 +27,67 @@ const NEXT_ACTION: Partial<Record<ServiceStatus, { label: string; target: Servic
   in_progress: { label: 'Concluir', target: 'done' },
 }
 
+/** Limite de ordens por coluna do quadro (máximo aceito pela API). */
+const BOARD_SIZE = 100
+/** O quadro se atualiza sozinho a cada 20s. */
+const REFRESH_MS = 20000
+
+/** Início e fim do dia local, em ISO, para filtrar por data de conclusão. */
+function todayRange() {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  end.setMilliseconds(-1)
+  return { finishedFrom: start.toISOString(), finishedTo: end.toISOString() }
+}
+
+const byCreatedAt = (a: ServiceOrderResponse, b: ServiceOrderResponse) =>
+  a.createdAt.localeCompare(b.createdAt)
+
 export function PainelPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const today = toDateInput(new Date())
 
-  const ordersQuery = useQuery({
-    queryKey: ['service-orders', 'all'],
-    queryFn: () => listServiceOrders(),
-    refetchInterval: 20000, // atualiza o quadro a cada 20s
+  const waitingQuery = useQuery({
+    queryKey: ['service-orders', 'board', 'waiting'],
+    queryFn: () => listServiceOrders({ status: 'waiting', size: BOARD_SIZE }),
+    refetchInterval: REFRESH_MS,
   })
+  const inProgressQuery = useQuery({
+    queryKey: ['service-orders', 'board', 'in_progress'],
+    queryFn: () => listServiceOrders({ status: 'in_progress', size: BOARD_SIZE }),
+    refetchInterval: REFRESH_MS,
+  })
+  const doneTodayQuery = useQuery({
+    queryKey: ['service-orders', 'board', 'done', today],
+    queryFn: () => listServiceOrders({ status: 'done', size: BOARD_SIZE, ...todayRange() }),
+    refetchInterval: REFRESH_MS,
+  })
+  const boardError = waitingQuery.error ?? inProgressQuery.error ?? doneTodayQuery.error
   const scheduledTodayQuery = useQuery({
     queryKey: ['service-orders-schedule', today],
     queryFn: () => listScheduledServiceOrders(today, today),
-    refetchInterval: 20000,
+    refetchInterval: REFRESH_MS,
   })
   const pickupTodayQuery = useQuery({
     queryKey: ['service-orders-pickup', today],
     queryFn: () => listPickupEstimates(today, today),
-    refetchInterval: 20000,
+    refetchInterval: REFRESH_MS,
   })
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
   const tenantQuery = useQuery({ queryKey: ['tenant-me'], queryFn: getCurrentTenant })
 
-  const customerById = useMemo(() => {
-    const map = new Map<string, CustomerResponse>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c))
-    return map
-  }, [customersQuery.data])
-
-  const vehicleById = useMemo(() => {
-    const map = new Map<string, VehicleResponse>()
-    vehiclesQuery.data?.forEach((v) => map.set(v.id, v))
-    return map
-  }, [vehiclesQuery.data])
-
-  const orders = ordersQuery.data ?? []
-
-  const waiting = orders
-    .filter((o) => o.status === 'waiting')
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  const inProgress = orders
-    .filter((o) => o.status === 'in_progress')
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  const doneToday = orders
-    .filter((o) => o.status === 'done' && isToday(o.finishedAt))
-    .sort((a, b) => (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''))
+  // Fila e andamento: mais antigas primeiro. Concluídas: mais recentes primeiro.
+  const waiting = [...(waitingQuery.data?.content ?? [])].sort(byCreatedAt)
+  const inProgress = [...(inProgressQuery.data?.content ?? [])].sort(byCreatedAt)
+  const doneToday = [...(doneTodayQuery.data?.content ?? [])].sort((a, b) =>
+    (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''),
+  )
+  const waitingCount = waitingQuery.data?.totalElements ?? 0
+  const inProgressCount = inProgressQuery.data?.totalElements ?? 0
+  const doneTodayCount = doneTodayQuery.data?.totalElements ?? 0
 
   const revenueToday = doneToday.reduce((sum, o) => sum + o.total, 0)
   const receivableToday = doneToday.reduce(
@@ -107,15 +116,15 @@ export function PainelPage() {
 
       {/* Indicadores do dia */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
-        <StatTile label="Na fila" value={String(waiting.length)} tone="amber" />
-        <StatTile label="Em andamento" value={String(inProgress.length)} tone="blue" />
-        <StatTile label="Concluídas hoje" value={String(doneToday.length)} tone="green" />
+        <StatTile label="Na fila" value={String(waitingCount)} tone="amber" />
+        <StatTile label="Em andamento" value={String(inProgressCount)} tone="blue" />
+        <StatTile label="Concluídas hoje" value={String(doneTodayCount)} tone="green" />
         <StatTile label="Faturamento hoje" value={formatCurrency(revenueToday)} tone="indigo" />
         <StatTile label="A receber hoje" value={formatCurrency(receivableToday)} tone="red" />
       </div>
 
-      {ordersQuery.isError && (
-        <p className="mb-4 text-sm text-red-500">{getApiErrorMessage(ordersQuery.error)}</p>
+      {boardError && (
+        <p className="mb-4 text-sm text-red-500">{getApiErrorMessage(boardError)}</p>
       )}
 
       {/* Destaques do dia: agendados que ainda não chegaram e retiradas previstas */}
@@ -129,7 +138,6 @@ export function PainelPage() {
           ) : (
             <ul className="flex flex-col gap-2">
               {scheduledTodayQuery.data!.map((o) => {
-                const vehicle = vehicleById.get(o.vehicleId)
                 return (
                   <li
                     key={o.id}
@@ -144,8 +152,7 @@ export function PainelPage() {
                         {o.scheduledAt ? formatTime(o.scheduledAt) : '—'}
                       </span>{' '}
                       <span className="text-slate-500 dark:text-slate-400">
-                        {customerById.get(o.customerId)?.name ?? 'Cliente'}
-                        {vehicle ? ` · ${describeVehicle(vehicle)}` : ''}
+                        {o.customer.name} · {describeVehicle(o.vehicle)}
                       </span>
                     </button>
                     <Button
@@ -171,7 +178,6 @@ export function PainelPage() {
           ) : (
             <ul className="flex flex-col gap-2">
               {pickupTodayQuery.data!.map((o) => {
-                const vehicle = vehicleById.get(o.vehicleId)
                 return (
                   <li key={o.id}>
                     <button
@@ -184,8 +190,7 @@ export function PainelPage() {
                           {o.estimatedPickupAt ? formatTime(o.estimatedPickupAt) : '—'}
                         </span>{' '}
                         <span className="text-slate-500 dark:text-slate-400">
-                          {customerById.get(o.customerId)?.name ?? 'Cliente'}
-                          {vehicle ? ` · ${describeVehicle(vehicle)}` : ''}
+                          {o.customer.name} · {describeVehicle(o.vehicle)}
                         </span>
                       </span>
                       <StatusBadge status={o.status} />
@@ -200,13 +205,13 @@ export function PainelPage() {
 
       {/* Quadro */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Column title="Aguardando" count={waiting.length} tone="amber">
+        <Column title="Aguardando" count={waitingCount} tone="amber">
           {waiting.map((o) => (
             <OrderCard
               key={o.id}
               order={o}
-              vehicle={vehicleById.get(o.vehicleId)}
-              customerName={customerById.get(o.customerId)?.name}
+              vehicle={o.vehicle}
+              customerName={o.customer.name}
               onOpen={() => navigate(`/ordens/${o.id}`)}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
@@ -215,13 +220,13 @@ export function PainelPage() {
           {waiting.length === 0 && <EmptyHint text="Sem ordens na fila." />}
         </Column>
 
-        <Column title="Em andamento" count={inProgress.length} tone="blue">
+        <Column title="Em andamento" count={inProgressCount} tone="blue">
           {inProgress.map((o) => (
             <OrderCard
               key={o.id}
               order={o}
-              vehicle={vehicleById.get(o.vehicleId)}
-              customerName={customerById.get(o.customerId)?.name}
+              vehicle={o.vehicle}
+              customerName={o.customer.name}
               onOpen={() => navigate(`/ordens/${o.id}`)}
               onAction={(status) => statusMutation.mutate({ id: o.id, status })}
               actionPending={statusMutation.isPending}
@@ -230,27 +235,23 @@ export function PainelPage() {
           {inProgress.length === 0 && <EmptyHint text="Nada em andamento." />}
         </Column>
 
-        <Column title="Concluídas hoje" count={doneToday.length} tone="green">
-          {doneToday.map((o) => {
-            const customer = customerById.get(o.customerId)
-            const vehicle = vehicleById.get(o.vehicleId)
-            return (
-              <OrderCard
-                key={o.id}
-                order={o}
-                vehicle={vehicle}
-                customerName={customer?.name}
-                onOpen={() => navigate(`/ordens/${o.id}`)}
-                whatsappLink={buildCarReadyWhatsAppLink({
-                  phone: customer?.phone,
-                  customerName: customer?.name,
-                  vehicle,
-                  establishmentName: tenantQuery.data?.name,
-                  items: o.items,
-                })}
-              />
-            )
-          })}
+        <Column title="Concluídas hoje" count={doneTodayCount} tone="green">
+          {doneToday.map((o) => (
+            <OrderCard
+              key={o.id}
+              order={o}
+              vehicle={o.vehicle}
+              customerName={o.customer.name}
+              onOpen={() => navigate(`/ordens/${o.id}`)}
+              whatsappLink={buildCarReadyWhatsAppLink({
+                phone: o.customer.phone,
+                customerName: o.customer.name,
+                vehicle: o.vehicle,
+                establishmentName: tenantQuery.data?.name,
+                items: o.items,
+              })}
+            />
+          ))}
           {doneToday.length === 0 && <EmptyHint text="Nenhuma concluída hoje ainda." />}
         </Column>
       </div>
@@ -316,7 +317,7 @@ function OrderCard({
   whatsappLink,
 }: {
   order: ServiceOrderResponse
-  vehicle?: VehicleResponse
+  vehicle?: VehicleSummary
   customerName?: string
   onOpen: () => void
   onAction?: (status: ServiceStatus) => void

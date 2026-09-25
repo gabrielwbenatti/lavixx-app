@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
@@ -13,6 +13,7 @@ import { formatCurrency, formatDocument, formatPlate } from '@/lib/format'
 import { maskDocument, maskPhone } from '@/lib/mask'
 import { describeVehicle } from '@/lib/describe'
 import { normalizePlate } from '@/lib/plate'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { listVehicles, createVehicle } from '@/services/vehicleService'
 import { listCustomers, createCustomer } from '@/services/customerService'
 import { listServices } from '@/services/serviceService'
@@ -62,8 +63,11 @@ export function AtendimentoPage() {
   const [useReward, setUseReward] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  // Só para saber se já existe algum cliente (define a aba inicial do cadastro rápido).
+  const customersQuery = useQuery({
+    queryKey: ['customers', 'any'],
+    queryFn: () => listCustomers({ size: 1 }),
+  })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
   const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
   const tenantQuery = useQuery({ queryKey: ['tenant-settings'], queryFn: getCurrentTenant })
@@ -72,12 +76,6 @@ export function AtendimentoPage() {
     queryFn: () => getCustomerLoyalty(vehicle!.customerId),
     enabled: !!vehicle?.customerId,
   })
-
-  const customerNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c.name))
-    return map
-  }, [customersQuery.data])
 
   const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
   const rewardAvailable = !!loyaltyQuery.data?.enabled && loyaltyQuery.data.rewardsAvailable > 0
@@ -97,18 +95,28 @@ export function AtendimentoPage() {
     queryClient.invalidateQueries({ queryKey: ['customer-loyalty'] })
   }
 
-  // ---- Passo 1: busca por placa ----
-  const plateMatches = useMemo(() => {
-    const q = normalizePlate(plateQuery)
-    if (q.length < 3) return []
-    return (vehiclesQuery.data ?? [])
-      .filter((v) => v.plate && normalizePlate(v.plate).includes(q))
-      .slice(0, 6)
-  }, [plateQuery, vehiclesQuery.data])
+  // ---- Passo 1: busca por placa (na API, enquanto digita) ----
+  const typedPlate = normalizePlate(plateQuery)
+  const searchedPlate = useDebouncedValue(typedPlate)
+  const plateSearchQuery = useQuery({
+    queryKey: ['vehicles', 'search', searchedPlate],
+    queryFn: () => listVehicles({ search: searchedPlate, size: 20 }),
+    enabled: searchedPlate.length >= 3,
+    placeholderData: keepPreviousData,
+  })
+  // A busca da API também casa apelido/modelo/cliente; aqui interessa só a placa.
+  const plateMatches =
+    typedPlate.length >= 3
+      ? (plateSearchQuery.data?.content ?? [])
+          .filter((v) => v.plate && normalizePlate(v.plate).includes(typedPlate))
+          .slice(0, 6)
+      : []
+  const plateSearchSettled =
+    searchedPlate === typedPlate && !plateSearchQuery.isFetching && !plateSearchQuery.isError
 
   const selectVehicle = (v: VehicleResponse) => {
     setVehicle(v)
-    setCustomerName(customerNameById.get(v.customerId) ?? 'Cliente')
+    setCustomerName(v.customerName)
     setStep('services')
   }
 
@@ -256,7 +264,7 @@ export function AtendimentoPage() {
             plateQuery={plateQuery}
             setPlateQuery={setPlateQuery}
             matches={plateMatches}
-            customerNameById={customerNameById}
+            searchSettled={plateSearchSettled}
             onSelect={selectVehicle}
             onRegister={() => setStep('register')}
           />
@@ -265,7 +273,7 @@ export function AtendimentoPage() {
         {step === 'register' && (
           <RegisterStep
             initialPlate={normalizePlate(plateQuery)}
-            customers={customersQuery.data ?? []}
+            hasCustomers={(customersQuery.data?.totalElements ?? 0) > 0}
             onCancel={() => setStep('plate')}
             onDone={(v, name) => {
               invalidateAll()
@@ -333,19 +341,20 @@ function PlateStep({
   plateQuery,
   setPlateQuery,
   matches,
-  customerNameById,
+  searchSettled,
   onSelect,
   onRegister,
 }: {
   plateQuery: string
   setPlateQuery: (v: string) => void
   matches: VehicleResponse[]
-  customerNameById: Map<string, string>
+  /** A busca da placa digitada já terminou (evita "não encontrado" antes da resposta). */
+  searchSettled: boolean
   onSelect: (v: VehicleResponse) => void
   onRegister: () => void
 }) {
   const typed = normalizePlate(plateQuery)
-  const showNoResult = typed.length >= 3 && matches.length === 0
+  const showNoResult = typed.length >= 3 && searchSettled && matches.length === 0
 
   return (
     <div className="text-center">
@@ -373,7 +382,7 @@ function PlateStep({
                 {formatPlate(v.plate)}
               </span>
               <span className="block text-sm text-slate-500 dark:text-slate-400">
-                {describeVehicle(v)} · {customerNameById.get(v.customerId) ?? 'Sem cliente'}
+                {describeVehicle(v)} · {v.customerName}
               </span>
             </span>
             <span className="text-indigo-600">Selecionar →</span>
@@ -399,20 +408,20 @@ function PlateStep({
 /* ========================= Passo 2: Cadastro ========================= */
 function RegisterStep({
   initialPlate,
-  customers,
+  hasCustomers,
   onCancel,
   onDone,
 }: {
   initialPlate: string
-  customers: { id: string; name: string; document: string | null }[]
+  hasCustomers: boolean
   onCancel: () => void
   onDone: (vehicle: VehicleResponse, customerName: string) => void
 }) {
   const [customerMode, setCustomerMode] = useState<'existing' | 'new'>(
-    customers.length > 0 ? 'existing' : 'new',
+    hasCustomers ? 'existing' : 'new',
   )
   const [customerSearch, setCustomerSearch] = useState('')
-  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(null)
   const [newName, setNewName] = useState('')
   const [newDoc, setNewDoc] = useState('')
   const [newPhone, setNewPhone] = useState('')
@@ -426,22 +435,19 @@ function RegisterStep({
 
   const [error, setError] = useState<string | null>(null)
 
-  const filteredCustomers = useMemo(() => {
-    const q = customerSearch.trim().toLowerCase()
-    if (!q) return customers.slice(0, 6)
-    return customers
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.document ?? '').includes(q.replace(/\D/g, '')),
-      )
-      .slice(0, 6)
-  }, [customerSearch, customers])
+  const customerTerm = useDebouncedValue(customerSearch.trim())
+  const customerSearchQuery = useQuery({
+    queryKey: ['customers', 'search', customerTerm, 6],
+    queryFn: () => listCustomers({ search: customerTerm || undefined, size: 6 }),
+    enabled: customerMode === 'existing',
+    placeholderData: keepPreviousData,
+  })
+  const filteredCustomers = customerSearchQuery.data?.content ?? []
 
   const mutation = useMutation({
     mutationFn: async () => {
-      let customerId = selectedCustomerId
-      let name = customers.find((c) => c.id === customerId)?.name ?? ''
+      let customerId = selectedCustomer?.id ?? ''
+      let name = selectedCustomer?.name ?? ''
       if (customerMode === 'new') {
         const created = await createCustomer({
           name: newName.trim(),
@@ -468,7 +474,7 @@ function RegisterStep({
 
   const handleSubmit = () => {
     setError(null)
-    if (customerMode === 'existing' && !selectedCustomerId) {
+    if (customerMode === 'existing' && !selectedCustomer) {
       setError('Selecione um cliente ou cadastre um novo.')
       return
     }
@@ -524,7 +530,7 @@ function RegisterStep({
         {customerMode === 'existing' ? (
           <div>
             <Input
-              placeholder="Buscar por nome ou CPF/CNPJ…"
+              placeholder="Buscar por nome, telefone ou CPF/CNPJ…"
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
             />
@@ -533,9 +539,9 @@ function RegisterStep({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSelectedCustomerId(c.id)}
+                  onClick={() => setSelectedCustomer({ id: c.id, name: c.name })}
                   className={
-                    selectedCustomerId === c.id
+                    selectedCustomer?.id === c.id
                       ? 'flex w-full items-center justify-between rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-left text-sm dark:border-indigo-700 dark:bg-indigo-950'
                       : 'flex w-full items-center justify-between rounded-lg border border-slate-200 px-4 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
                   }
@@ -544,7 +550,7 @@ function RegisterStep({
                   <span className="text-xs text-slate-400">{formatDocument(c.document)}</span>
                 </button>
               ))}
-              {filteredCustomers.length === 0 && (
+              {filteredCustomers.length === 0 && !customerSearchQuery.isFetching && (
                 <p className="px-1 py-2 text-sm text-slate-400">
                   Nenhum cliente. Use a aba “Novo”.
                 </p>

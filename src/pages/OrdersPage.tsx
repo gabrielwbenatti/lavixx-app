@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
@@ -11,17 +11,18 @@ import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Pagination } from '@/components/ui/Pagination'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { VehicleSearch } from '@/components/VehicleSearch'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { describeVehicle } from '@/lib/describe'
-import { useOrderFilters } from '@/lib/useOrderFilters'
+import { useOrderFilters, type OrderFilters } from '@/lib/useOrderFilters'
+import { usePageParam } from '@/lib/usePageParam'
 import { createOrderSchema, type CreateOrderForm } from '@/lib/schemas/serviceOrderSchemas'
 import { createServiceOrder, listServiceOrders } from '@/services/serviceOrderService'
 import { listVehicles } from '@/services/vehicleService'
-import { listCustomers } from '@/services/customerService'
 import {
   SERVICE_STATUSES,
   SERVICE_STATUS_LABELS,
@@ -36,35 +37,37 @@ export function OrdersPage() {
   const [formKey, setFormKey] = useState(0)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  const { filters, setFilter, clearFilters } = useOrderFilters()
+  const { filters, setFilter: setFilterValue, clearFilters: clearFilterValues } = useOrderFilters()
+  const [page, setPage] = usePageParam()
+
+  // Mudar filtro volta para a primeira página.
+  const setFilter = <K extends keyof OrderFilters>(key: K, value: OrderFilters[K]) => {
+    setFilterValue(key, value)
+    setPage(0)
+  }
+  const clearFilters = () => {
+    clearFilterValues()
+    setPage(0)
+  }
 
   const ordersQuery = useQuery({
-    queryKey: ['service-orders', JSON.stringify(filters)],
-    queryFn: () => {
-      const queryParams = {
-        ...(filters.status && { status: filters.status }),
-        ...(filters.fromDate && { fromDate: `${filters.fromDate}T00:00:00Z` }),
-        ...(filters.toDate && { toDate: `${filters.toDate}T23:59:59Z` }),
-        ...(filters.minAmount && { minAmount: filters.minAmount }),
-        ...(filters.maxAmount && { maxAmount: filters.maxAmount }),
-      }
-      return listServiceOrders(Object.keys(queryParams).length > 0 ? queryParams : undefined)
-    },
+    queryKey: ['service-orders', filters, page],
+    queryFn: () =>
+      listServiceOrders({
+        page,
+        status: filters.status,
+        fromDate: filters.fromDate && `${filters.fromDate}T00:00:00Z`,
+        toDate: filters.toDate && `${filters.toDate}T23:59:59Z`,
+        minAmount: filters.minAmount,
+        maxAmount: filters.maxAmount,
+      }),
+    placeholderData: keepPreviousData,
   })
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
-
-  const customerNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c.name))
-    return map
-  }, [customersQuery.data])
-
-  const vehicleLabelById = useMemo(() => {
-    const map = new Map<string, string>()
-    vehiclesQuery.data?.forEach((v) => map.set(v.id, describeVehicle(v)))
-    return map
-  }, [vehiclesQuery.data])
+  // Só para saber se já existe algum veículo cadastrado.
+  const vehiclesQuery = useQuery({
+    queryKey: ['vehicles', 'any'],
+    queryFn: () => listVehicles({ size: 1 }),
+  })
 
   const {
     handleSubmit,
@@ -93,7 +96,7 @@ export function OrdersPage() {
     onError: (err) => setFormError(getApiErrorMessage(err)),
   })
 
-  const hasVehicles = (vehiclesQuery.data?.length ?? 0) > 0
+  const hasVehicles = (vehiclesQuery.data?.totalElements ?? 0) > 0
 
   const openCreate = () => {
     setFormError(null)
@@ -102,7 +105,7 @@ export function OrdersPage() {
     setDialogOpen(true)
   }
 
-  const orders = ordersQuery.data
+  const orders = ordersQuery.data?.content
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -262,10 +265,10 @@ export function OrdersPage() {
                 >
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-800 dark:text-slate-100">
-                      {customerNameById.get(order.customerId) ?? 'Cliente'}
+                      {order.customer.name}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {vehicleLabelById.get(order.vehicleId) ?? '—'}
+                      {describeVehicle(order.vehicle)}
                     </div>
                     <div className="mt-1 sm:hidden">
                       <PaymentBadge status={order.paymentStatus} />
@@ -300,6 +303,10 @@ export function OrdersPage() {
         </Card>
       )}
 
+      {ordersQuery.data && (
+        <Pagination page={ordersQuery.data} onChange={setPage} label="ordens" />
+      )}
+
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -322,8 +329,6 @@ export function OrdersPage() {
           <Field label="Buscar veículo" htmlFor="vehicleSearch" error={errors.vehicleId?.message}>
             <VehicleSearch
               key={formKey}
-              vehicles={vehiclesQuery.data ?? []}
-              customerNameById={customerNameById}
               invalid={!!errors.vehicleId}
               autoFocus
               onSelect={(vehicleId) =>

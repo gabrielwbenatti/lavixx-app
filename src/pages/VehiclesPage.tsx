@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Car, Plus } from 'lucide-react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Car, Plus, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,8 +11,12 @@ import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
+import { Pagination } from '@/components/ui/Pagination'
+import { CustomerPicker, type PickedCustomer } from '@/components/CustomerPicker'
 import { getApiErrorMessage } from '@/lib/api'
 import { vehicleSchema, type VehicleForm } from '@/lib/schemas/vehicleSchema'
+import { useDebouncedValue } from '@/lib/useDebouncedValue'
+import { usePageParam } from '@/lib/usePageParam'
 import {
   createVehicle,
   deleteVehicle,
@@ -35,21 +39,35 @@ export function VehiclesPage() {
   const [editing, setEditing] = useState<VehicleResponse | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
+  const [owner, setOwner] = useState<PickedCustomer | null>(null)
+  const [formKey, setFormKey] = useState(0)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = usePageParam()
+  const term = useDebouncedValue(search.trim())
 
-  const customerNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c.name))
-    return map
-  }, [customersQuery.data])
+  const vehiclesQuery = useQuery({
+    queryKey: ['vehicles', { search: term, page }],
+    queryFn: () => listVehicles({ search: term || undefined, page }),
+    placeholderData: keepPreviousData,
+  })
+  // Só para saber se já existe algum cliente cadastrado.
+  const customersQuery = useQuery({
+    queryKey: ['customers', 'any'],
+    queryFn: () => listCustomers({ size: 1 }),
+  })
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<VehicleForm>({ resolver: zodResolver(vehicleSchema) })
+
+  const pickOwner = (customer: PickedCustomer | null) => {
+    setOwner(customer)
+    setValue('customerId', customer?.id ?? '', { shouldValidate: true })
+  }
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['vehicles'] })
 
@@ -81,11 +99,13 @@ export function VehiclesPage() {
     onError: (err) => window.alert(getApiErrorMessage(err)),
   })
 
-  const hasCustomers = (customersQuery.data?.length ?? 0) > 0
+  const hasCustomers = (customersQuery.data?.totalElements ?? 0) > 0
 
   const openCreate = () => {
     setEditing(null)
     setFormError(null)
+    setOwner(null)
+    setFormKey((k) => k + 1)
     reset({
       customerId: '',
       type: 'car',
@@ -103,6 +123,8 @@ export function VehiclesPage() {
   const openEdit = (vehicle: VehicleResponse) => {
     setEditing(vehicle)
     setFormError(null)
+    setOwner({ id: vehicle.customerId, name: vehicle.customerName })
+    setFormKey((k) => k + 1)
     reset({
       customerId: vehicle.customerId,
       type: vehicle.type,
@@ -128,7 +150,7 @@ export function VehiclesPage() {
     }
   }
 
-  const vehicles = vehiclesQuery.data
+  const vehicles = vehiclesQuery.data?.content
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -156,6 +178,24 @@ export function VehiclesPage() {
         </Card>
       )}
 
+      <div className="relative mb-4 max-w-sm">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <Input
+          type="search"
+          placeholder="Buscar por placa, modelo ou cliente…"
+          className="pl-9"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(0)
+          }}
+          aria-label="Buscar veículos"
+        />
+      </div>
+
       {vehiclesQuery.isLoading && <p className="text-sm text-slate-500">Carregando…</p>}
       {vehiclesQuery.isError && (
         <p className="text-sm text-red-500">{getApiErrorMessage(vehiclesQuery.error)}</p>
@@ -163,7 +203,7 @@ export function VehiclesPage() {
 
       {vehicles && vehicles.length === 0 && (
         <Card className="p-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          Nenhum veículo cadastrado ainda.
+          {term ? 'Nenhum veículo encontrado para essa busca.' : 'Nenhum veículo cadastrado ainda.'}
         </Card>
       )}
 
@@ -193,7 +233,7 @@ export function VehiclesPage() {
                       {describeVehicle(vehicle)}
                     </Link>
                     <div className="mt-0.5 text-xs text-slate-400 sm:hidden">
-                      {customerNameById.get(vehicle.customerId) ?? '—'}
+                      {vehicle.customerName}
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
@@ -203,7 +243,7 @@ export function VehiclesPage() {
                     {formatPlate(vehicle.plate)}
                   </td>
                   <td className="hidden px-4 py-3 text-slate-600 dark:text-slate-300 sm:table-cell">
-                    {customerNameById.get(vehicle.customerId) ?? '—'}
+                    {vehicle.customerName}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
@@ -226,6 +266,10 @@ export function VehiclesPage() {
         </Card>
       )}
 
+      {vehiclesQuery.data && (
+        <Pagination page={vehiclesQuery.data} onChange={setPage} label="veículos" />
+      )}
+
       <Dialog
         open={dialogOpen}
         onClose={closeDialog}
@@ -246,14 +290,13 @@ export function VehiclesPage() {
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Cliente" htmlFor="customerId" error={errors.customerId?.message}>
-              <Select id="customerId" invalid={!!errors.customerId} {...register('customerId')}>
-                <option value="">Selecione…</option>
-                {customersQuery.data?.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+              <CustomerPicker
+                key={formKey}
+                id="customerId"
+                value={owner}
+                onChange={pickOwner}
+                invalid={!!errors.customerId}
+              />
             </Field>
             <Field label="Tipo" htmlFor="type" error={errors.type?.message}>
               <Select id="type" invalid={!!errors.type} {...register('type')}>

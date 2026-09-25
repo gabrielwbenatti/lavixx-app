@@ -1,8 +1,15 @@
 import { api } from '@/lib/api'
+import type { Page, PageParams } from '@/types/page'
 import type { VehicleRequest, VehicleResponse } from '@/types/vehicle'
 
-export async function listVehicles(): Promise<VehicleResponse[]> {
-  const { data } = await api.get<VehicleResponse[]>('/vehicles')
+/**
+ * GET /vehicles — paginado; `search` busca por placa, apelido, modelo ou nome do cliente;
+ * `customerId` restringe aos veículos de um cliente.
+ */
+export async function listVehicles(
+  params?: PageParams & { search?: string; customerId?: string },
+): Promise<Page<VehicleResponse>> {
+  const { data } = await api.get<Page<VehicleResponse>>('/vehicles', { params })
   return data
 }
 

@@ -4,23 +4,42 @@ import type {
   ServiceOrderItemResponse,
   ServiceOrderRequest,
   ServiceOrderResponse,
+  ServiceOrderStats,
   ServiceStatus,
   UpdateItemRequest,
 } from '@/types/serviceOrder'
+import type { Page, PageParams } from '@/types/page'
 import type { PaymentRequest } from '@/types/payment'
 
-export async function listServiceOrders(filters?: {
-  status?: ServiceStatus
+/** GET /service-orders — paginado, mais recentes primeiro (por data de emissão). */
+export async function listServiceOrders(
+  filters?: PageParams & {
+    status?: ServiceStatus
+    customerId?: string
+    vehicleId?: string
+    fromDate?: string
+    toDate?: string
+    /** Início/fim do intervalo de conclusão (finishedAt), em ISO. */
+    finishedFrom?: string
+    finishedTo?: string
+    minAmount?: number
+    maxAmount?: number
+  },
+): Promise<Page<ServiceOrderResponse>> {
+  const { data } = await api.get<Page<ServiceOrderResponse>>('/service-orders', {
+    params: filters,
+  })
+  return data
+}
+
+/** GET /service-orders/stats — totais das ordens que atendem aos filtros. */
+export async function getServiceOrderStats(filters: {
   customerId?: string
   vehicleId?: string
   fromDate?: string
   toDate?: string
-  minAmount?: number
-  maxAmount?: number
-}): Promise<ServiceOrderResponse[]> {
-  const { data } = await api.get<ServiceOrderResponse[]>('/service-orders', {
-    params: filters ?? undefined,
-  })
+}): Promise<ServiceOrderStats> {
+  const { data } = await api.get<ServiceOrderStats>('/service-orders/stats', { params: filters })
   return data
 }
 

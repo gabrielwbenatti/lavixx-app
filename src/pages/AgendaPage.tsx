@@ -16,8 +16,6 @@ import {
   updateServiceOrderScheduledAt,
   updateServiceOrderStatus,
 } from '@/services/serviceOrderService'
-import { listVehicles } from '@/services/vehicleService'
-import { listCustomers } from '@/services/customerService'
 import type { ServiceOrderResponse } from '@/types/serviceOrder'
 
 /** Presets de período rápidos (sempre olhando pra frente, é uma agenda de compromissos futuros). */
@@ -58,20 +56,6 @@ export function AgendaPage() {
     queryFn: () => listScheduledServiceOrders(from, to),
     enabled: !invalidRange,
   })
-  const vehiclesQuery = useQuery({ queryKey: ['vehicles'], queryFn: listVehicles })
-  const customersQuery = useQuery({ queryKey: ['customers'], queryFn: listCustomers })
-
-  const customerNameById = useMemo(() => {
-    const map = new Map<string, string>()
-    customersQuery.data?.forEach((c) => map.set(c.id, c.name))
-    return map
-  }, [customersQuery.data])
-
-  const vehicleLabelById = useMemo(() => {
-    const map = new Map<string, string>()
-    vehiclesQuery.data?.forEach((v) => map.set(v.id, describeVehicle(v)))
-    return map
-  }, [vehiclesQuery.data])
 
   const checkInMutation = useMutation({
     mutationFn: (id: string) => updateServiceOrderStatus(id, 'waiting'),
@@ -226,10 +210,10 @@ export function AgendaPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-800 dark:text-slate-100">
-                        {customerNameById.get(order.customerId) ?? 'Cliente'}
+                        {order.customer.name}
                       </div>
                       <div className="text-xs text-slate-400">
-                        {vehicleLabelById.get(order.vehicleId) ?? '—'}
+                        {describeVehicle(order.vehicle)}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
