@@ -5,6 +5,7 @@ import { ClipboardList, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { LinkRow } from '@/components/ui/LinkRow'
@@ -129,11 +130,10 @@ export function OrdersPage() {
                 <label htmlFor="fromDate" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
                   De
                 </label>
-                <Input
+                <DateInput
                   id="fromDate"
-                  type="date"
                   value={filters.fromDate || ''}
-                  onChange={(e) => setFilter('fromDate', e.target.value || undefined)}
+                  onChange={(v) => setFilter('fromDate', v || undefined)}
                   className="h-9 text-sm"
                 />
               </div>
@@ -141,11 +141,10 @@ export function OrdersPage() {
                 <label htmlFor="toDate" className="mb-1 block text-xs text-slate-600 dark:text-slate-400">
                   Até
                 </label>
-                <Input
+                <DateInput
                   id="toDate"
-                  type="date"
                   value={filters.toDate || ''}
-                  onChange={(e) => setFilter('toDate', e.target.value || undefined)}
+                  onChange={(v) => setFilter('toDate', v || undefined)}
                   className="h-9 text-sm"
                 />
               </div>

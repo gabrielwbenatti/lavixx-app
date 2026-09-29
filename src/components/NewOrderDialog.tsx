@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Field } from '@/components/ui/Field'
-import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { QuickVehicleForm } from '@/components/QuickVehicleForm'
 import { VehicleSearch } from '@/components/VehicleSearch'
 import { getApiErrorMessage } from '@/lib/api'
@@ -47,6 +47,7 @@ export function NewOrderDialog({
     handleSubmit,
     reset,
     register,
+    control,
     setValue,
     watch,
     formState: { errors },
@@ -153,11 +154,20 @@ export function NewOrderDialog({
 
         {isScheduled && (
           <Field label="Data e hora do agendamento" htmlFor="scheduledAt" error={errors.scheduledAt?.message}>
-            <Input
-              id="scheduledAt"
-              type="datetime-local"
-              invalid={!!errors.scheduledAt}
-              {...register('scheduledAt')}
+            <Controller
+              control={control}
+              name="scheduledAt"
+              render={({ field }) => (
+                <DateInput
+                  id="scheduledAt"
+                  withTime
+                  ref={field.ref}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  invalid={!!errors.scheduledAt}
+                />
+              )}
             />
           </Field>
         )}

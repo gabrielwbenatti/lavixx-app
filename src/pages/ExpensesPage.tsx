@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Receipt } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
@@ -58,6 +59,7 @@ export function ExpensesPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
@@ -144,12 +146,11 @@ export function ExpensesPage() {
             <label htmlFor="from" className="mb-1 block text-xs font-medium text-slate-500">
               De
             </label>
-            <Input
+            <DateInput
               id="from"
-              type="date"
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={setFrom}
               className="w-44"
             />
           </div>
@@ -157,12 +158,11 @@ export function ExpensesPage() {
             <label htmlFor="to" className="mb-1 block text-xs font-medium text-slate-500">
               Até
             </label>
-            <Input
+            <DateInput
               id="to"
-              type="date"
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={setTo}
               className="w-44"
             />
           </div>
@@ -283,7 +283,20 @@ export function ExpensesPage() {
               />
             </Field>
             <Field label="Data" htmlFor="date" error={errors.date?.message}>
-              <Input id="date" type="date" invalid={!!errors.date} {...register('date')} />
+              <Controller
+                control={control}
+                name="date"
+                render={({ field }) => (
+                  <DateInput
+                    id="date"
+                    ref={field.ref}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    invalid={!!errors.date}
+                  />
+                )}
+              />
             </Field>
           </div>
           <Field label="Descrição (opcional)" htmlFor="description" error={errors.description?.message}>

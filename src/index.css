@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
 
 :root {
   color-scheme: light dark;
@@ -34,5 +35,44 @@ body {
   :disabled,
   [aria-disabled='true'] {
     cursor: not-allowed;
+  }
+}
+
+/* Calendário do DateInput (react-day-picker) com as cores do app. */
+
+.lavixx-calendar .rdp-root {
+  --rdp-accent-color: var(--color-indigo-600);
+  --rdp-accent-background-color: var(--color-indigo-50);
+  --rdp-day-height: 38px;
+  --rdp-day-width: 38px;
+  --rdp-day_button-height: 36px;
+  --rdp-day_button-width: 36px;
+  --rdp-day_button-border-radius: 0.5rem;
+  --rdp-nav-height: 2.25rem;
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  font-size: 0.875rem;
+}
+
+.lavixx-calendar .rdp-selected .rdp-day_button {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.lavixx-calendar .rdp-day_button:not(:disabled):hover {
+  background-color: var(--rdp-accent-background-color);
+}
+
+.lavixx-calendar .rdp-selected .rdp-day_button:hover {
+  background-color: var(--color-indigo-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  .lavixx-calendar .rdp-root {
+    --rdp-accent-color: var(--color-indigo-500);
+    --rdp-accent-background-color: color-mix(in oklab, var(--color-indigo-500) 20%, transparent);
+  }
+  .lavixx-calendar .rdp-dropdown {
+    color-scheme: dark;
   }
 }

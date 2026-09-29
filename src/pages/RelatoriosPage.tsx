@@ -4,7 +4,7 @@ import { BarChart3 } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { toDateInput } from '@/lib/datetime'
@@ -63,12 +63,11 @@ export function RelatoriosPage() {
             <label htmlFor="from" className="mb-1 block text-xs font-medium text-slate-500">
               De
             </label>
-            <Input
+            <DateInput
               id="from"
-              type="date"
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={setFrom}
               className="w-44"
             />
           </div>
@@ -76,12 +75,11 @@ export function RelatoriosPage() {
             <label htmlFor="to" className="mb-1 block text-xs font-medium text-slate-500">
               Até
             </label>
-            <Input
+            <DateInput
               id="to"
-              type="date"
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={setTo}
               className="w-44"
             />
           </div>

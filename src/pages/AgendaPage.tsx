@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CalendarClock, CalendarPlus, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { Card } from '@/components/ui/Card'
 import { LinkRow } from '@/components/ui/LinkRow'
 import { Dialog } from '@/components/ui/Dialog'
@@ -195,12 +195,11 @@ export function AgendaPage() {
             <label htmlFor="agendaFrom" className="mb-1 block text-xs font-medium text-slate-500">
               De
             </label>
-            <Input
+            <DateInput
               id="agendaFrom"
-              type="date"
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={setFrom}
               className="w-44"
             />
           </div>
@@ -208,12 +207,11 @@ export function AgendaPage() {
             <label htmlFor="agendaTo" className="mb-1 block text-xs font-medium text-slate-500">
               Até
             </label>
-            <Input
+            <DateInput
               id="agendaTo"
-              type="date"
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={setTo}
               className="w-44"
             />
           </div>
@@ -317,11 +315,11 @@ export function AgendaPage() {
           noValidate
         >
           <Field label="Nova data e hora" htmlFor="rescheduleAt">
-            <Input
+            <DateInput
               id="rescheduleAt"
-              type="datetime-local"
+              withTime
               value={rescheduleValue}
-              onChange={(e) => setRescheduleValue(e.target.value)}
+              onChange={setRescheduleValue}
             />
           </Field>
           <div className="mt-2 flex justify-end gap-2">

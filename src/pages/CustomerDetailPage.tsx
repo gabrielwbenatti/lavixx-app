@@ -6,6 +6,7 @@ import { useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { LinkRow } from '@/components/ui/LinkRow'
@@ -194,22 +195,18 @@ export function CustomerDetailPage() {
         <label htmlFor="fromDate" className="text-xs text-slate-500">
           Período:
         </label>
-        <Input
+        <DateInput
           id="fromDate"
-          type="date"
           value={filters.fromDate || ''}
-          onChange={(e) => setFilter('fromDate', e.target.value || undefined)}
-          className="h-9 w-32 text-xs"
-          placeholder="De"
+          onChange={(v) => setFilter('fromDate', v || undefined)}
+          className="h-9 w-36 text-xs"
         />
         <span className="text-xs text-slate-400">até</span>
-        <Input
+        <DateInput
           id="toDate"
-          type="date"
           value={filters.toDate || ''}
-          onChange={(e) => setFilter('toDate', e.target.value || undefined)}
-          className="h-9 w-32 text-xs"
-          placeholder="Até"
+          onChange={(v) => setFilter('toDate', v || undefined)}
+          className="h-9 w-36 text-xs"
         />
         {(filters.fromDate || filters.toDate) && (
           <Button variant="ghost" className="h-9 text-xs" onClick={clearFilters}>

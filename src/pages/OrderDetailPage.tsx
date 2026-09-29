@@ -9,6 +9,7 @@ import { isAdmin } from '@/lib/auth'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
 import { Select } from '@/components/ui/Select'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
@@ -933,11 +934,11 @@ export function OrderDetailPage() {
           noValidate
         >
           <Field label="Data e hora" htmlFor="pickupAt">
-            <Input
+            <DateInput
               id="pickupAt"
-              type="datetime-local"
+              withTime
               value={pickupValue}
-              onChange={(e) => setPickupValue(e.target.value)}
+              onChange={setPickupValue}
             />
           </Field>
           <div className="mt-2 flex justify-between gap-2">
@@ -985,20 +986,20 @@ export function OrderDetailPage() {
           noValidate
         >
           <Field label="Data de emissão" htmlFor="issuedAt">
-            <Input
+            <DateInput
               id="issuedAt"
-              type="datetime-local"
+              withTime
               value={issuedAtValue}
-              onChange={(e) => setIssuedAtValue(e.target.value)}
+              onChange={setIssuedAtValue}
             />
           </Field>
           {order.finishedAt && (
             <Field label="Data de finalização" htmlFor="finishedAtField">
-              <Input
+              <DateInput
                 id="finishedAtField"
-                type="datetime-local"
+                withTime
                 value={finishedAtValue}
-                onChange={(e) => setFinishedAtValue(e.target.value)}
+                onChange={setFinishedAtValue}
               />
             </Field>
           )}
@@ -1034,11 +1035,11 @@ export function OrderDetailPage() {
           noValidate
         >
           <Field label="Data e hora" htmlFor="paymentDate">
-            <Input
+            <DateInput
               id="paymentDate"
-              type="datetime-local"
+              withTime
               value={paymentDateValue}
-              onChange={(e) => setPaymentDateValue(e.target.value)}
+              onChange={setPaymentDateValue}
             />
           </Field>
           <div className="mt-2 flex justify-end gap-2">
@@ -1100,11 +1101,11 @@ export function OrderDetailPage() {
           </Field>
           {isAdmin() && (
             <Field label="Data do pagamento (admin)" htmlFor="payDate">
-              <Input
+              <DateInput
                 id="payDate"
-                type="datetime-local"
+                withTime
                 value={payDateValue}
-                onChange={(e) => setPayDateValue(e.target.value)}
+                onChange={setPayDateValue}
               />
             </Field>
           )}
