@@ -5,6 +5,9 @@ import { Wrench } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DateInput } from '@/components/ui/DateInput'
+import { Field } from '@/components/ui/Field'
+import { Textarea } from '@/components/ui/Textarea'
 import { Card } from '@/components/ui/Card'
 import { QuickVehicleForm } from '@/components/QuickVehicleForm'
 import { getApiErrorMessage } from '@/lib/api'
@@ -18,6 +21,7 @@ import { listProducts } from '@/services/productService'
 import {
   createServiceOrder,
   redeemServiceOrderLoyalty,
+  updateServiceOrderPickupEstimate,
   updateServiceOrderTax,
 } from '@/services/serviceOrderService'
 import { getCurrentTenant } from '@/services/tenantService'
@@ -53,6 +57,9 @@ export function AtendimentoPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [taxEnabled, setTaxEnabled] = useState(true)
   const [useReward, setUseReward] = useState(false)
+  const [observations, setObservations] = useState('')
+  /** Previsão de retirada no formato 'yyyy-MM-ddTHH:mm' ('' = não informada). */
+  const [pickupAt, setPickupAt] = useState('')
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
@@ -134,6 +141,7 @@ export function AtendimentoPage() {
           ...(i.kind === 'product' ? { productId: i.refId } : { serviceId: i.refId }),
           quantity: i.quantity,
         })),
+        observations: observations.trim() || undefined,
       })
       // A OS herda a taxa padrão do tenant na criação; se o operador optou por
       // zerar (ou o valor difere do padrão), ajusta a taxa da OS recém-criada.
@@ -143,6 +151,10 @@ export function AtendimentoPage() {
       // Aplica o prêmio de fidelidade, se o operador optou por usá-lo.
       if (useReward && rewardAvailable) {
         order = await redeemServiceOrderLoyalty(order.id)
+      }
+      // A criação não aceita previsão de retirada; registra logo em seguida.
+      if (pickupAt) {
+        order = await updateServiceOrderPickupEstimate(order.id, new Date(pickupAt).toISOString())
       }
       return order
     },
@@ -161,6 +173,8 @@ export function AtendimentoPage() {
     setCart([])
     setTaxEnabled(true)
     setUseReward(false)
+    setObservations('')
+    setPickupAt('')
     setCreatedOrderId(null)
   }
 
@@ -303,6 +317,10 @@ export function AtendimentoPage() {
             loyaltyDiscount={loyaltyDiscount}
             useReward={useReward}
             onToggleReward={() => setUseReward((v) => !v)}
+            observations={observations}
+            onObservationsChange={setObservations}
+            pickupAt={pickupAt}
+            onPickupAtChange={setPickupAt}
             submitting={createOrderMutation.isPending}
             error={createOrderMutation.error ? getApiErrorMessage(createOrderMutation.error) : null}
             onBack={() => setStep('services')}
@@ -538,6 +556,10 @@ function ReviewStep({
   loyaltyDiscount,
   useReward,
   onToggleReward,
+  observations,
+  onObservationsChange,
+  pickupAt,
+  onPickupAtChange,
   submitting,
   error,
   onBack,
@@ -558,6 +580,10 @@ function ReviewStep({
   loyaltyDiscount: number
   useReward: boolean
   onToggleReward: () => void
+  observations: string
+  onObservationsChange: (value: string) => void
+  pickupAt: string
+  onPickupAtChange: (value: string) => void
   submitting: boolean
   error: string | null
   onBack: () => void
@@ -658,6 +684,22 @@ function ReviewStep({
             </tr>
           </tfoot>
         </table>
+      </Card>
+
+      <Card className="mb-6 flex flex-col gap-4 p-5">
+        <Field label="Previsão de retirada (opcional)" htmlFor="pickupAt">
+          <DateInput id="pickupAt" withTime value={pickupAt} onChange={onPickupAtChange} />
+        </Field>
+        <Field label="Observações (opcional)" htmlFor="observations">
+          <Textarea
+            id="observations"
+            rows={3}
+            maxLength={1000}
+            placeholder="Ex.: Riscado no para-choque; cliente pediu cuidado com o vidro."
+            value={observations}
+            onChange={(e) => onObservationsChange(e.target.value)}
+          />
+        </Field>
       </Card>
 
       <div className="flex justify-between">
