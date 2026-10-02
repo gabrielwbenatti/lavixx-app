@@ -232,6 +232,7 @@ export function UsersPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={handleSubmit((form) => {
             setFormError(null)
             inviteMutation.mutate(form)

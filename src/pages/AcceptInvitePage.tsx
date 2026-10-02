@@ -84,7 +84,7 @@ export function AcceptInvitePage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+            <form autoComplete="off" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
               <Field label="Nova senha" htmlFor="password" error={errors.password?.message}>
                 <Input
                   id="password"

@@ -123,6 +123,7 @@ export function NewOrderDialog({
         </div>
       )}
       <form
+        autoComplete="off"
         onSubmit={handleSubmit((form) => {
           setFormError(null)
           createMutation.mutate(form)

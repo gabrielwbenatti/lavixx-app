@@ -307,6 +307,7 @@ export function AgendaPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             submitReschedule()

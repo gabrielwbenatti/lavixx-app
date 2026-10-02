@@ -299,6 +299,7 @@ export function CustomerDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={handleSubmit((form) => {
             setFormError(null)
             editMutation.mutate(form)

@@ -122,6 +122,7 @@ export function SettingsPage() {
       {/* Formulário: largura limitada para os campos não ficarem longos demais. */}
       <Card className="max-w-2xl p-6">
         <form
+          autoComplete="off"
           onSubmit={handleSubmit((form) => updateMutation.mutate(form))}
           className="flex flex-col gap-4"
           noValidate

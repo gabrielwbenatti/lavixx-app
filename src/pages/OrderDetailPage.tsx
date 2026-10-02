@@ -835,6 +835,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             submitTax()
@@ -886,6 +887,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             setObsError(null)
@@ -926,6 +928,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             submitPickup()
@@ -978,6 +981,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             submitDates()
@@ -1027,6 +1031,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={(e) => {
             e.preventDefault()
             submitEditPaymentDate()
@@ -1061,6 +1066,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={payForm.handleSubmit((form) => {
             setPayError(null)
             addPaymentMutation.mutate(form)
@@ -1128,6 +1134,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={addForm.handleSubmit((form) => {
             setItemError(null)
             addItemMutation.mutate(form)
@@ -1199,6 +1206,7 @@ export function OrderDetailPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={editForm.handleSubmit((form) => {
             setItemError(null)
             editItemMutation.mutate(form)

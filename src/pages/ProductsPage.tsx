@@ -171,6 +171,7 @@ export function ProductsPage() {
           </div>
         )}
         <form
+          autoComplete="off"
           onSubmit={handleSubmit((form) => {
             setFormError(null)
             saveMutation.mutate(form)
