@@ -70,7 +70,7 @@ export function VehicleSearch({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-      if (query.trim().length >= MIN_CHARS) setOpen(true)
+      if (!selected && query.trim().length >= MIN_CHARS) setOpen(true)
       return
     }
     if (e.key === 'ArrowDown') {
@@ -99,7 +99,7 @@ export function VehicleSearch({
         autoFocus={autoFocus}
         autoComplete="off"
         onChange={(e) => handleChange(e.target.value)}
-        onFocus={() => setOpen(query.trim().length >= MIN_CHARS)}
+        onFocus={() => setOpen(!selected && query.trim().length >= MIN_CHARS)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={handleKeyDown}
       />
