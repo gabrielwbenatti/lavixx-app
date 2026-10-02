@@ -69,7 +69,7 @@ export function HomePage() {
         </Card>
       ) : (
         <Link to="/atendimento">
-          <Card className="mb-6 flex items-center justify-between bg-indigo-600 p-6 text-white transition-colors hover:bg-indigo-500">
+          <div className="mb-6 flex items-center justify-between rounded-2xl bg-indigo-600 p-6 text-white shadow-sm transition-colors hover:bg-indigo-500">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
                 <Zap size={24} strokeWidth={2} />
@@ -82,7 +82,7 @@ export function HomePage() {
               </div>
             </div>
             <ChevronRight size={24} className="shrink-0 opacity-70" />
-          </Card>
+          </div>
         </Link>
       )}
 
