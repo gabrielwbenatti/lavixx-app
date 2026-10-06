@@ -99,6 +99,7 @@ export interface ServiceOrderStats {
 }
 
 export interface UpdateItemRequest {
+  unitPrice?: number
   discount?: number
   quantity?: number
 }

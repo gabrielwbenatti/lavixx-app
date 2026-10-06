@@ -135,6 +135,8 @@ export function OrderDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['service-order', id] })
     queryClient.invalidateQueries({ queryKey: ['service-orders'] })
     queryClient.invalidateQueries({ queryKey: ['customer-loyalty'] })
+    // Itens, pagamentos e status mudam faturado/recebido/a receber do fechamento de caixa.
+    queryClient.invalidateQueries({ queryKey: ['report-summary'] })
   }
 
   const addItemMutation = useMutation({
@@ -157,6 +159,7 @@ export function OrderDetailPage() {
   const editItemMutation = useMutation({
     mutationFn: (form: EditItemFormOutput) =>
       updateServiceOrderItem(id, editingItem!.id, {
+        unitPrice: form.unitPrice,
         quantity: form.quantity,
         discount: form.discount,
       }),
@@ -326,7 +329,11 @@ export function OrderDetailPage() {
 
   const openEdit = (item: ServiceOrderItemResponse) => {
     setItemError(null)
-    editForm.reset({ quantity: String(item.quantity), discount: item.discount ? String(item.discount) : '' })
+    editForm.reset({
+      unitPrice: item.unitPrice.toFixed(2).replace('.', ','),
+      quantity: String(item.quantity),
+      discount: item.discount ? String(item.discount) : '',
+    })
     setEditingItem(item)
   }
 
@@ -1214,7 +1221,20 @@ export function OrderDetailPage() {
           className="flex flex-col gap-4"
           noValidate
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field
+              label="Preço unitário (R$)"
+              htmlFor="editUnitPrice"
+              error={editForm.formState.errors.unitPrice?.message}
+            >
+              <Input
+                id="editUnitPrice"
+                inputMode="decimal"
+                placeholder="0,00"
+                invalid={!!editForm.formState.errors.unitPrice}
+                {...editForm.register('unitPrice')}
+              />
+            </Field>
             <Field label="Quantidade" htmlFor="editQuantity" error={editForm.formState.errors.quantity?.message}>
               <Input
                 id="editQuantity"
@@ -1224,7 +1244,7 @@ export function OrderDetailPage() {
               />
             </Field>
             <Field
-              label="Desconto por unidade (R$)"
+              label="Desconto/un. (R$)"
               htmlFor="editDiscount"
               error={editForm.formState.errors.discount?.message}
             >
