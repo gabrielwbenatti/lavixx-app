@@ -119,8 +119,7 @@ export function SettingsPage() {
         </div>
       </header>
 
-      {/* Formulário: largura limitada para os campos não ficarem longos demais. */}
-      <Card className="max-w-2xl p-6">
+      <Card className="p-4 sm:p-6">
         <form
           autoComplete="off"
           onSubmit={handleSubmit((form) => updateMutation.mutate(form))}
@@ -243,15 +242,12 @@ export function SettingsPage() {
 
       <Card className="mt-6 border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
         <h3 className="font-semibold text-amber-900 dark:text-amber-200">Informações do estabelecimento</h3>
-        <dl className="mt-3 space-y-2 text-sm text-amber-800 dark:text-amber-300">
-          <div className="flex justify-between">
-            <dt>CNPJ/CPF:</dt>
-            <dd className="font-mono">{formatDocument(tenantQuery.data?.document)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt>ID do estabelecimento:</dt>
-            <dd className="font-mono">{tenantQuery.data?.id}</dd>
-          </div>
+        {/* Empilhado no celular; em telas maiores rótulo e valor lado a lado, alinhados à esquerda. */}
+        <dl className="mt-3 grid gap-x-4 gap-y-3 text-sm text-amber-800 dark:text-amber-300 sm:grid-cols-[auto_1fr]">
+          <dt className="font-medium">CNPJ/CPF</dt>
+          <dd className="break-all font-mono">{formatDocument(tenantQuery.data?.document)}</dd>
+          <dt className="font-medium">ID do estabelecimento</dt>
+          <dd className="break-all font-mono">{tenantQuery.data?.id}</dd>
         </dl>
       </Card>
     </div>
