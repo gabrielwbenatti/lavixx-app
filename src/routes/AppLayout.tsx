@@ -7,6 +7,7 @@ import {
   Car,
   ClipboardList,
   CreditCard,
+  HardHat,
   Home,
   LayoutDashboard,
   LogOut,
@@ -43,6 +44,7 @@ const navSections: NavSection[] = [
     items: [
       { to: '/clientes',         label: 'Clientes',            icon: Users },
       { to: '/veiculos',         label: 'Veículos',            icon: Car },
+      { to: '/funcionarios',     label: 'Funcionários',        icon: HardHat },
       { to: '/servicos',         label: 'Serviços',            icon: Wrench },
       { to: '/produtos',         label: 'Produtos',            icon: ShoppingBag },
       { to: '/formas-pagamento', label: 'Formas de pagamento', icon: CreditCard },
