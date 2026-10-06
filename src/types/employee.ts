@@ -5,6 +5,12 @@ export interface EmployeeRequest {
   active?: boolean
 }
 
+/** Funcionário resumido, embutido nos itens da OS. */
+export interface EmployeeSummary {
+  id: string
+  name: string
+}
+
 export interface EmployeeResponse {
   id: string
   name: string

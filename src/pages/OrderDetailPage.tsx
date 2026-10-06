@@ -19,6 +19,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PaymentBadge } from '@/components/ui/PaymentBadge'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CatalogSearch } from '@/components/CatalogSearch'
+import { EmployeePicker } from '@/components/EmployeePicker'
+import { listEmployees } from '@/services/employeeService'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
@@ -86,6 +88,8 @@ export function OrderDetailPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ServiceOrderItemResponse | null>(null)
   const [itemError, setItemError] = useState<string | null>(null)
+  const [addEmployeeIds, setAddEmployeeIds] = useState<string[]>([])
+  const [editEmployeeIds, setEditEmployeeIds] = useState<string[]>([])
   const [pageError, setPageError] = useState<string | null>(null)
   const [payOpen, setPayOpen] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
@@ -110,6 +114,7 @@ export function OrderDetailPage() {
   const orderQuery = useQuery({ queryKey: ['service-order', id], queryFn: () => getServiceOrder(id) })
   const servicesQuery = useQuery({ queryKey: ['services'], queryFn: listServices })
   const productsQuery = useQuery({ queryKey: ['products'], queryFn: listProducts })
+  const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: listEmployees })
   const paymentMethodsQuery = useQuery({
     queryKey: ['payment-methods'],
     queryFn: listPaymentMethods,
@@ -146,6 +151,7 @@ export function OrderDetailPage() {
         ...(kind === 'product' ? { productId: refId } : { serviceId: refId }),
         quantity: form.quantity,
         discount: form.discount,
+        employeeIds: addEmployeeIds,
       })
     },
     onSuccess: () => {
@@ -162,6 +168,7 @@ export function OrderDetailPage() {
         unitPrice: form.unitPrice,
         quantity: form.quantity,
         discount: form.discount,
+        employeeIds: editEmployeeIds,
       }),
     onSuccess: () => {
       invalidate()
@@ -324,6 +331,9 @@ export function OrderDetailPage() {
   const openAdd = () => {
     setItemError(null)
     addForm.reset({ catalogRef: '', quantity: '1', discount: '' })
+    // Pré-seleciona quem executou o último item: na maioria das ordens é a mesma equipe.
+    const lastItem = order?.items[order.items.length - 1]
+    setAddEmployeeIds(lastItem?.employees.map((e) => e.id) ?? [])
     setAddOpen(true)
   }
 
@@ -334,6 +344,7 @@ export function OrderDetailPage() {
       quantity: String(item.quantity),
       discount: item.discount ? String(item.discount) : '',
     })
+    setEditEmployeeIds(item.employees.map((e) => e.id))
     setEditingItem(item)
   }
 
@@ -652,6 +663,11 @@ export function OrderDetailPage() {
                 >
                   <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-100">
                     {item.name}
+                    {item.employees.length > 0 && (
+                      <div className="mt-0.5 text-xs font-normal text-slate-500 dark:text-slate-400">
+                        {item.employees.map((e) => e.name).join(', ')}
+                      </div>
+                    )}
                     <div className="mt-0.5 text-xs font-normal text-slate-400 sm:hidden">
                       {formatCurrency(item.unitPrice)}
                       {item.quantity > 1 && ` × ${item.quantity}`}
@@ -1189,6 +1205,16 @@ export function OrderDetailPage() {
               />
             </Field>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Quem executou <span className="font-normal text-slate-400">(opcional)</span>
+            </span>
+            <EmployeePicker
+              employees={employeesQuery.data ?? []}
+              value={addEmployeeIds}
+              onChange={setAddEmployeeIds}
+            />
+          </div>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
               Cancelar
@@ -1256,6 +1282,17 @@ export function OrderDetailPage() {
                 {...editForm.register('discount')}
               />
             </Field>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Quem executou <span className="font-normal text-slate-400">(opcional)</span>
+            </span>
+            <EmployeePicker
+              employees={employeesQuery.data ?? []}
+              current={editingItem?.employees}
+              value={editEmployeeIds}
+              onChange={setEditEmployeeIds}
+            />
           </div>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>

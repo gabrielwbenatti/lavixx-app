@@ -1,6 +1,7 @@
 /** Espelha os DTOs de ordem de serviço da API. */
 
 import type { CustomerSummary } from '@/types/customer'
+import type { EmployeeSummary } from '@/types/employee'
 import type { PaymentResponse, PaymentStatus } from '@/types/payment'
 import type { VehicleSummary } from '@/types/vehicle'
 
@@ -36,6 +37,7 @@ export interface ServiceOrderItemRequest {
   productId?: string
   discount?: number
   quantity?: number
+  employeeIds?: string[]
 }
 
 export interface ServiceOrderItemResponse {
@@ -47,6 +49,7 @@ export interface ServiceOrderItemResponse {
   discount: number
   quantity: number
   finalPrice: number
+  employees: EmployeeSummary[]
 }
 
 export interface ServiceOrderRequest {
@@ -102,4 +105,6 @@ export interface UpdateItemRequest {
   unitPrice?: number
   discount?: number
   quantity?: number
+  /** undefined = não altera; [] = remove todos. */
+  employeeIds?: string[]
 }
