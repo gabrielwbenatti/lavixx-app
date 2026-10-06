@@ -14,6 +14,18 @@ export interface ServiceTotal {
   total: number
 }
 
+export interface EmployeeTotal {
+  /** null = itens sem funcionário informado. */
+  employeeId: string | null
+  name: string
+  /** OS distintas em que participou. */
+  orders: number
+  /** Unidades dos itens em que participou. */
+  quantity: number
+  /** Sua parte: valor do item dividido igualmente entre os funcionários do item. */
+  total: number
+}
+
 export interface ExpenseCategoryTotal {
   category: ExpenseCategory
   count: number
@@ -33,4 +45,5 @@ export interface ReportSummaryResponse {
   byPaymentMethod: PaymentMethodTotal[]
   byService: ServiceTotal[]
   byExpenseCategory: ExpenseCategoryTotal[]
+  byEmployee: EmployeeTotal[]
 }

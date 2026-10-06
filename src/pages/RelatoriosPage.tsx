@@ -197,6 +197,58 @@ export function RelatoriosPage() {
               )}
             </Card>
 
+            {/* Produção por funcionário */}
+            <Card className="overflow-hidden lg:col-span-2">
+              <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-800 dark:text-slate-100">
+                  Produção por funcionário
+                </h2>
+                <p className="text-xs text-slate-400">
+                  OS concluídas no período. O valor de cada item é dividido igualmente entre os
+                  funcionários do item; não inclui taxa de serviço nem desconto de fidelidade.
+                </p>
+              </div>
+              {data.byEmployee.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-slate-400">
+                  Nenhum serviço concluído no período.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/50">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Funcionário</th>
+                      <th className="px-4 py-2 font-medium">OS</th>
+                      <th className="px-4 py-2 font-medium">Qtd</th>
+                      <th className="px-4 py-2 text-right font-medium">Produzido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.byEmployee.map((e) => (
+                      <tr
+                        key={e.employeeId ?? 'unassigned'}
+                        className="border-b border-slate-100 last:border-0 dark:border-slate-800"
+                      >
+                        <td
+                          className={
+                            e.employeeId
+                              ? 'px-4 py-2 text-slate-800 dark:text-slate-100'
+                              : 'px-4 py-2 italic text-slate-400'
+                          }
+                        >
+                          {e.employeeId ? e.name : 'Sem funcionário informado'}
+                        </td>
+                        <td className="px-4 py-2 text-slate-500">{e.orders}</td>
+                        <td className="px-4 py-2 text-slate-500">{e.quantity}</td>
+                        <td className="px-4 py-2 text-right font-medium text-slate-800 dark:text-slate-100">
+                          {formatCurrency(e.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+
             {/* Despesas por categoria */}
             <Card className="overflow-hidden">
               <h2 className="border-b border-slate-200 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
