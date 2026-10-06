@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { registerTenant } from '@/services/tenantService'
+import { detectBrowserTimezone } from '@/lib/timezones'
 import { saveSession } from '@/lib/auth'
 import { getApiErrorMessage } from '@/lib/api'
 import { maskDocument, withMask } from '@/lib/mask'
@@ -45,6 +46,7 @@ export function RegisterPage() {
         adminName: form.adminName,
         adminEmail: form.adminEmail,
         adminPassword: form.adminPassword,
+        timezone: detectBrowserTimezone(),
       })
       saveSession(response.token, response.tenantName, 'admin')
       navigate('/home', { replace: true })

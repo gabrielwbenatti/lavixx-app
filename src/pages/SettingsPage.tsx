@@ -6,6 +6,8 @@ import { z } from 'zod'
 
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { BRAZIL_TIMEZONES, DEFAULT_TIMEZONE } from '@/lib/timezones'
 import { Field } from '@/components/ui/Field'
 import { Card } from '@/components/ui/Card'
 import { getApiErrorMessage } from '@/lib/api'
@@ -19,6 +21,7 @@ interface TenantResponse {
   id: string
   name: string
   document: string
+  timezone: string
   operatingHoursStart: string
   operatingHoursEnd: string
   defaultServiceTax: number
@@ -29,6 +32,7 @@ interface TenantResponse {
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório').max(150),
+  timezone: z.string().min(1, 'Selecione o fuso horário'),
   operatingHoursStart: z.string().regex(/^\d{2}:\d{2}$/, 'Formato: HH:mm'),
   operatingHoursEnd: z.string().regex(/^\d{2}:\d{2}$/, 'Formato: HH:mm'),
   defaultServiceTax: z
@@ -76,6 +80,7 @@ export function SettingsPage() {
     resolver: zodResolver(settingsSchema),
     values: tenantQuery.data ? {
       name: tenantQuery.data.name,
+      timezone: tenantQuery.data.timezone || DEFAULT_TIMEZONE,
       operatingHoursStart: tenantQuery.data.operatingHoursStart || '08:00',
       operatingHoursEnd: tenantQuery.data.operatingHoursEnd || '18:00',
       defaultServiceTax: String(tenantQuery.data.defaultServiceTax || 0),
@@ -96,6 +101,13 @@ export function SettingsPage() {
       addToast(getApiErrorMessage(err), 'error')
     },
   })
+
+  // Fusos do Brasil; se o do estabelecimento for outro (ex.: cadastrado fora do país), mantém-no na lista.
+  const currentTimezone = tenantQuery.data?.timezone
+  const timezoneOptions =
+    currentTimezone && !BRAZIL_TIMEZONES.some((tz) => tz.id === currentTimezone)
+      ? [...BRAZIL_TIMEZONES, { id: currentTimezone, label: currentTimezone }]
+      : BRAZIL_TIMEZONES
 
   if (tenantQuery.isLoading) {
     return <p className="text-sm text-slate-500">Carregando…</p>
@@ -128,6 +140,21 @@ export function SettingsPage() {
         >
           <Field label="Nome do estabelecimento" htmlFor="name" error={errors.name?.message}>
             <Input id="name" invalid={!!errors.name} {...register('name')} />
+          </Field>
+
+          <Field
+            label="Fuso horário"
+            htmlFor="timezone"
+            error={errors.timezone?.message}
+            hint="Define quando o dia começa e termina nos relatórios e filtros por data."
+          >
+            <Select id="timezone" invalid={!!errors.timezone} {...register('timezone')}>
+              {timezoneOptions.map((tz) => (
+                <option key={tz.id} value={tz.id}>
+                  {tz.label}
+                </option>
+              ))}
+            </Select>
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">

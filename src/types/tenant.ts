@@ -7,6 +7,8 @@ export interface TenantRegistrationRequest {
   adminName: string
   adminEmail: string
   adminPassword: string
+  /** Fuso IANA do estabelecimento; se omitido (ou inválido), a API usa America/Sao_Paulo. */
+  timezone?: string
 }
 
 /** Resposta de POST /tenants (TenantRegistrationResponse). */
@@ -23,6 +25,8 @@ export interface TenantResponse {
   id: string
   name: string
   document: string
+  /** Fuso IANA do estabelecimento (define onde o "dia" começa e termina nos relatórios). */
+  timezone: string
   operatingHoursStart: string
   operatingHoursEnd: string
   /** Taxa de serviço padrão (%) aplicada a novas ordens. */
