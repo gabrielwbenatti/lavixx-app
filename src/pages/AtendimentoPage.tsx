@@ -17,6 +17,7 @@ import { normalizePlate } from '@/lib/plate'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { listVehicles } from '@/services/vehicleService'
 import { listServices } from '@/services/serviceService'
+import { servicePriceFor } from '@/lib/pricing'
 import { listProducts } from '@/services/productService'
 import {
   createServiceOrder,
@@ -286,7 +287,10 @@ export function AtendimentoPage() {
 
         {step === 'services' && (
           <ServicesStep
-            services={servicesQuery.data ?? []}
+            services={(servicesQuery.data ?? []).map((s) => ({
+              ...s,
+              price: servicePriceFor(s, vehicle?.size),
+            }))}
             products={productsQuery.data ?? []}
             isLoading={servicesQuery.isLoading || productsQuery.isLoading}
             customerName={customerName}

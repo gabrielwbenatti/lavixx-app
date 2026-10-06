@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { VEHICLE_TYPES } from '@/types/vehicle'
+import { VEHICLE_SIZES, VEHICLE_TYPES } from '@/types/vehicle'
 
 /** Campo de texto opcional com tamanho máximo; string vazia é permitida. */
 const optionalText = (max: number) =>
@@ -12,6 +12,8 @@ const optionalText = (max: number) =>
 export const vehicleSchema = z.object({
   customerId: z.string().min(1, 'Selecione o cliente'),
   type: z.enum(VEHICLE_TYPES, { message: 'Selecione o tipo' }),
+  // Porte opcional: '' = não informado (usa o preço padrão dos serviços).
+  size: z.enum([...VEHICLE_SIZES, '']).optional(),
   plate: optionalText(10),
   identifier: optionalText(60),
   nickname: optionalText(80),

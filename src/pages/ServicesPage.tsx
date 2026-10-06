@@ -23,6 +23,23 @@ import {
   updateService,
 } from '@/services/serviceService'
 import type { ServiceResponse } from '@/types/service'
+import {
+  VEHICLE_SIZES,
+  VEHICLE_SIZE_EXAMPLES,
+  VEHICLE_SIZE_LABELS,
+  type VehicleSize,
+} from '@/types/vehicle'
+
+/** Campo do formulário de cada porte. */
+const SIZE_FIELD = {
+  small: 'priceSmall',
+  medium: 'priceMedium',
+  large: 'priceLarge',
+} as const satisfies Record<VehicleSize, 'priceSmall' | 'priceMedium' | 'priceLarge'>
+
+function sizePrice(service: ServiceResponse, size: VehicleSize): number | null {
+  return service[SIZE_FIELD[size]]
+}
 
 export function ServicesPage() {
   const queryClient = useQueryClient()
@@ -66,14 +83,20 @@ export function ServicesPage() {
   const openCreate = () => {
     setEditing(null)
     setFormError(null)
-    reset({ name: '', price: '' })
+    reset({ name: '', price: '', priceSmall: '', priceMedium: '', priceLarge: '' })
     setDialogOpen(true)
   }
 
   const openEdit = (service: ServiceResponse) => {
     setEditing(service)
     setFormError(null)
-    reset({ name: service.name, price: String(service.price) })
+    reset({
+      name: service.name,
+      price: String(service.price),
+      priceSmall: service.priceSmall != null ? String(service.priceSmall) : '',
+      priceMedium: service.priceMedium != null ? String(service.priceMedium) : '',
+      priceLarge: service.priceLarge != null ? String(service.priceLarge) : '',
+    })
     setDialogOpen(true)
   }
 
@@ -140,6 +163,16 @@ export function ServicesPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {formatCurrency(service.price)}
+                    {(service.priceSmall != null ||
+                      service.priceMedium != null ||
+                      service.priceLarge != null) && (
+                      <div className="mt-0.5 text-xs text-slate-400">
+                        {VEHICLE_SIZES.map((s) => [s, sizePrice(service, s)] as const)
+                          .filter(([, p]) => p != null)
+                          .map(([s, p]) => `${VEHICLE_SIZE_LABELS[s]} ${formatCurrency(p as number)}`)
+                          .join(' · ')}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
@@ -184,7 +217,12 @@ export function ServicesPage() {
           <Field label="Nome do serviço" htmlFor="name" error={errors.name?.message}>
             <Input id="name" placeholder="Ex.: Lavagem completa" invalid={!!errors.name} {...register('name')} />
           </Field>
-          <Field label="Preço (R$)" htmlFor="price" error={errors.price?.message}>
+          <Field
+            label="Preço padrão (R$)"
+            htmlFor="price"
+            error={errors.price?.message}
+            hint="Vale para veículos sem porte informado ou sem preço específico abaixo."
+          >
             <Input
               id="price"
               inputMode="decimal"
@@ -193,6 +231,37 @@ export function ServicesPage() {
               {...register('price')}
             />
           </Field>
+
+          <fieldset className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+            <legend className="px-1 text-sm font-medium text-slate-700 dark:text-slate-200">
+              Preço por porte do veículo (opcional)
+            </legend>
+            <p className="mb-3 text-xs text-slate-400">
+              Deixe em branco para usar o preço padrão naquele porte.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {VEHICLE_SIZES.map((s) => {
+                const name = SIZE_FIELD[s]
+                return (
+                  <Field
+                    key={s}
+                    label={VEHICLE_SIZE_LABELS[s]}
+                    htmlFor={name}
+                    error={errors[name]?.message}
+                    hint={VEHICLE_SIZE_EXAMPLES[s]}
+                  >
+                    <Input
+                      id={name}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      invalid={!!errors[name]}
+                      {...register(name)}
+                    />
+                  </Field>
+                )
+              })}
+            </div>
+          </fieldset>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={closeDialog}>
               Cancelar

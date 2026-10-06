@@ -12,9 +12,35 @@ export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   other: 'Outro',
 }
 
+/** Porte do veículo: define o preço de tabela dos serviços (opcional). */
+export const VEHICLE_SIZES = ['small', 'medium', 'large'] as const
+export type VehicleSize = (typeof VEHICLE_SIZES)[number]
+
+export const VEHICLE_SIZE_LABELS: Record<VehicleSize, string> = {
+  small: 'Pequeno',
+  medium: 'Médio',
+  large: 'Grande',
+}
+
+/** Exemplos de veículos de cada porte. */
+export const VEHICLE_SIZE_EXAMPLES: Record<VehicleSize, string> = {
+  small: 'hatch, moto',
+  medium: 'sedan',
+  large: 'SUV, picape',
+}
+
+/** Rótulos com exemplos, para os seletores. */
+export const VEHICLE_SIZE_OPTION_LABELS: Record<VehicleSize, string> = {
+  small: `${VEHICLE_SIZE_LABELS.small} (${VEHICLE_SIZE_EXAMPLES.small})`,
+  medium: `${VEHICLE_SIZE_LABELS.medium} (${VEHICLE_SIZE_EXAMPLES.medium})`,
+  large: `${VEHICLE_SIZE_LABELS.large} (${VEHICLE_SIZE_EXAMPLES.large})`,
+}
+
 export interface VehicleRequest {
   customerId: string
   type: VehicleType
+  /** Omitido = sem porte (usa o preço padrão dos serviços). */
+  size?: VehicleSize
   plate?: string
   identifier?: string
   nickname?: string
@@ -28,6 +54,7 @@ export interface VehicleRequest {
 export interface VehicleSummary {
   id: string
   type: VehicleType
+  size: VehicleSize | null
   plate: string | null
   identifier: string | null
   nickname: string | null

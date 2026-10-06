@@ -24,7 +24,13 @@ import { getVehicle, updateVehicle } from '@/services/vehicleService'
 import { useOrderFilters, type OrderFilters } from '@/lib/useOrderFilters'
 import { usePageParam } from '@/lib/usePageParam'
 import { getServiceOrderStats, listServiceOrders } from '@/services/serviceOrderService'
-import { VEHICLE_TYPES, VEHICLE_TYPE_LABELS, type VehicleRequest } from '@/types/vehicle'
+import {
+  VEHICLE_SIZES,
+  VEHICLE_SIZE_OPTION_LABELS,
+  VEHICLE_TYPES,
+  VEHICLE_TYPE_LABELS,
+  type VehicleRequest,
+} from '@/types/vehicle'
 
 export function VehicleDetailPage() {
   const { id = '' } = useParams()
@@ -80,6 +86,7 @@ export function VehicleDetailPage() {
       const payload: VehicleRequest = {
         customerId: form.customerId,
         type: form.type,
+        size: form.size || undefined,
         plate: form.plate || undefined,
         identifier: form.identifier || undefined,
         nickname: form.nickname || undefined,
@@ -107,6 +114,7 @@ export function VehicleDetailPage() {
     reset({
       customerId: v.customerId,
       type: v.type,
+      size: v.size ?? '',
       plate: v.plate ?? '',
       identifier: v.identifier ?? '',
       nickname: v.nickname ?? '',
@@ -306,6 +314,18 @@ export function VehicleDetailPage() {
               </Select>
             </Field>
           </div>
+          <Field
+            label="Porte"
+            htmlFor="size"
+            hint="Define o preço de tabela dos serviços para este veículo."
+          >
+            <Select id="size" {...register('size')}>
+              <option value="">Não informado (preço padrão)</option>
+              {VEHICLE_SIZES.map((s) => (
+                <option key={s} value={s}>{VEHICLE_SIZE_OPTION_LABELS[s]}</option>
+              ))}
+            </Select>
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Apelido" htmlFor="nickname" error={errors.nickname?.message}>
               <Input id="nickname" {...register('nickname')} />

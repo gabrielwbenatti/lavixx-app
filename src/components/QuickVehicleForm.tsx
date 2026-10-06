@@ -14,9 +14,12 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { createCustomer, listCustomers } from '@/services/customerService'
 import { createVehicle } from '@/services/vehicleService'
 import {
+  VEHICLE_SIZES,
+  VEHICLE_SIZE_OPTION_LABELS,
   VEHICLE_TYPES,
   VEHICLE_TYPE_LABELS,
   type VehicleResponse,
+  type VehicleSize,
   type VehicleType,
 } from '@/types/vehicle'
 
@@ -60,6 +63,7 @@ export function QuickVehicleForm({
   const [newPhone, setNewPhone] = useState('')
 
   const [type, setType] = useState<VehicleType>('car')
+  const [size, setSize] = useState<VehicleSize | ''>('')
   const [plate, setPlate] = useState(initialPlate)
   const [nickname, setNickname] = useState('')
   const [manufacturer, setManufacturer] = useState('')
@@ -92,6 +96,7 @@ export function QuickVehicleForm({
       return createVehicle({
         customerId,
         type,
+        size: size || undefined,
         plate: plate.trim() || undefined,
         nickname: nickname.trim() || undefined,
         manufacturer: manufacturer.trim() || undefined,
@@ -214,6 +219,16 @@ export function QuickVehicleForm({
               {VEHICLE_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {VEHICLE_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Porte" htmlFor="vSize">
+            <Select id="vSize" value={size} onChange={(e) => setSize(e.target.value as VehicleSize | '')}>
+              <option value="">Não informado (preço padrão)</option>
+              {VEHICLE_SIZES.map((s) => (
+                <option key={s} value={s}>
+                  {VEHICLE_SIZE_OPTION_LABELS[s]}
                 </option>
               ))}
             </Select>

@@ -21,6 +21,7 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CatalogSearch } from '@/components/CatalogSearch'
 import { EmployeePicker } from '@/components/EmployeePicker'
 import { listEmployees } from '@/services/employeeService'
+import { servicePriceFor } from '@/lib/pricing'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
 import { formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
@@ -1172,7 +1173,11 @@ export function OrderDetailPage() {
               render={({ field }) => (
                 <CatalogSearch
                   key={addOpen ? 'open' : 'closed'}
-                  services={servicesQuery.data ?? []}
+                  // Mostra o preço de tabela do porte do veículo desta OS (o servidor grava o mesmo).
+                  services={(servicesQuery.data ?? []).map((s) => ({
+                    ...s,
+                    price: servicePriceFor(s, order.vehicle.size),
+                  }))}
                   products={productsQuery.data ?? []}
                   value={field.value ?? ''}
                   onChange={field.onChange}
