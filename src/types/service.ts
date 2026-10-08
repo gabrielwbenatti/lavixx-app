@@ -8,6 +8,8 @@ export interface ServiceRequest {
   priceSmall?: number | null
   priceMedium?: number | null
   priceLarge?: number | null
+  /** Duração estimada em minutos (opcional); base para a futura agenda. */
+  durationMinutes?: number | null
 }
 
 export interface ServiceResponse {
@@ -17,6 +19,7 @@ export interface ServiceResponse {
   priceSmall: number | null
   priceMedium: number | null
   priceLarge: number | null
+  durationMinutes: number | null
   createdAt: string
   updatedAt: string
 }

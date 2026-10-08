@@ -90,6 +90,8 @@ export interface ServiceOrderResponse {
   issuedAt: string
   createdAt: string
   updatedAt: string
+  /** Quando entrou em andamento (null em OS anteriores à medição ou ainda não iniciadas). */
+  startedAt: string | null
   finishedAt: string | null
 }
 

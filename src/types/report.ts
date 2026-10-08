@@ -14,6 +14,17 @@ export interface ServiceTotal {
   total: number
 }
 
+export interface ServiceTimeStat {
+  serviceId: string
+  name: string
+  /** Duração estimada cadastrada no serviço (minutos); ausente se não informada. */
+  estimatedMinutes?: number | null
+  /** OS medidas (serviço único, quantidade 1, início e conclusão registrados). */
+  samples: number
+  averageMinutes: number
+  medianMinutes: number
+}
+
 export interface EmployeeTotal {
   /** null = itens sem funcionário informado. */
   employeeId: string | null
@@ -45,5 +56,6 @@ export interface ReportSummaryResponse {
   byPaymentMethod: PaymentMethodTotal[]
   byService: ServiceTotal[]
   byExpenseCategory: ExpenseCategoryTotal[]
+  serviceTimes: ServiceTimeStat[]
   byEmployee: EmployeeTotal[]
 }

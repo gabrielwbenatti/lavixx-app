@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card'
 import { Dialog } from '@/components/ui/Dialog'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
+import { formatDuration } from '@/lib/datetime'
 import {
   serviceSchema,
   type ServiceFormInput,
@@ -83,7 +84,7 @@ export function ServicesPage() {
   const openCreate = () => {
     setEditing(null)
     setFormError(null)
-    reset({ name: '', price: '', priceSmall: '', priceMedium: '', priceLarge: '' })
+    reset({ name: '', price: '', priceSmall: '', priceMedium: '', priceLarge: '', durationMinutes: '' })
     setDialogOpen(true)
   }
 
@@ -96,6 +97,7 @@ export function ServicesPage() {
       priceSmall: service.priceSmall != null ? String(service.priceSmall) : '',
       priceMedium: service.priceMedium != null ? String(service.priceMedium) : '',
       priceLarge: service.priceLarge != null ? String(service.priceLarge) : '',
+      durationMinutes: service.durationMinutes != null ? String(service.durationMinutes) : '',
     })
     setDialogOpen(true)
   }
@@ -160,6 +162,11 @@ export function ServicesPage() {
                 >
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">
                     {service.name}
+                    {service.durationMinutes != null && (
+                      <div className="mt-0.5 text-xs font-normal text-slate-400">
+                        Duração estimada: {formatDuration(service.durationMinutes)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                     {formatCurrency(service.price)}
@@ -262,6 +269,21 @@ export function ServicesPage() {
               })}
             </div>
           </fieldset>
+
+          <Field
+            label="Duração estimada (minutos)"
+            htmlFor="durationMinutes"
+            error={errors.durationMinutes?.message}
+            hint="Opcional. Serve de base para a agenda e para comparar com o tempo real medido."
+          >
+            <Input
+              id="durationMinutes"
+              inputMode="numeric"
+              placeholder="Ex.: 45"
+              invalid={!!errors.durationMinutes}
+              {...register('durationMinutes')}
+            />
+          </Field>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={closeDialog}>
               Cancelar

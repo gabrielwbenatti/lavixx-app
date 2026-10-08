@@ -51,6 +51,15 @@ export function toDateTimeLocalInput(iso: string): string {
   return `${y}-${mo}-${day}T${h}:${mi}`
 }
 
+/** Duração em minutos, resumida: "45 min", "1 h", "1 h 20 min". */
+export function formatDuration(totalMinutes: number): string {
+  const min = Math.max(0, Math.round(totalMinutes))
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60)
+  const rest = min % 60
+  return rest ? `${h} h ${rest} min` : `${h} h`
+}
+
 /** Tempo decorrido desde a data, resumido: "agora", "há 12 min", "há 2 h 5 min". */
 export function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime()

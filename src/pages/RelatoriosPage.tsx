@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card'
 import { DateInput } from '@/components/ui/DateInput'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
-import { toDateInput } from '@/lib/datetime'
+import { formatDuration, toDateInput } from '@/lib/datetime'
 import { getReportSummary } from '@/services/reportService'
 import { EXPENSE_CATEGORY_LABELS } from '@/types/expense'
 
@@ -190,6 +190,55 @@ export function RelatoriosPage() {
                         <td className="px-4 py-2 text-right font-medium text-slate-800 dark:text-slate-100">
                           {formatCurrency(s.total)}
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Card>
+
+            {/* Tempo de execução por serviço */}
+            <Card className="overflow-hidden lg:col-span-2">
+              <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                <h2 className="font-semibold text-slate-800 dark:text-slate-100">
+                  Tempo de execução por serviço
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Do “Iniciar” ao “Concluir” da OS. Só entram OS com um único serviço (quantidade
+                  1), pois o tempo de uma OS com vários serviços não dá para dividir entre eles.
+                  Conclusões em menos de 1 minuto são ignoradas.
+                </p>
+              </div>
+              {data.serviceTimes.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-slate-400">
+                  Ainda não há medições no período.
+                </p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500 dark:bg-slate-800/50">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Serviço</th>
+                      <th className="px-4 py-2 font-medium">Estimado</th>
+                      <th className="px-4 py-2 font-medium">Média</th>
+                      <th className="px-4 py-2 font-medium">Mediana</th>
+                      <th className="px-4 py-2 text-right font-medium">OS medidas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.serviceTimes.map((t) => (
+                      <tr
+                        key={t.serviceId}
+                        className="border-b border-slate-100 last:border-0 dark:border-slate-800"
+                      >
+                        <td className="px-4 py-2 text-slate-800 dark:text-slate-100">{t.name}</td>
+                        <td className="px-4 py-2 text-slate-500">
+                          {t.estimatedMinutes != null ? formatDuration(t.estimatedMinutes) : '—'}
+                        </td>
+                        <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-100">
+                          {formatDuration(t.averageMinutes)}
+                        </td>
+                        <td className="px-4 py-2 text-slate-500">{formatDuration(t.medianMinutes)}</td>
+                        <td className="px-4 py-2 text-right text-slate-500">{t.samples}</td>
                       </tr>
                     ))}
                   </tbody>

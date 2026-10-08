@@ -24,7 +24,7 @@ import { listEmployees } from '@/services/employeeService'
 import { servicePriceFor } from '@/lib/pricing'
 import { getApiErrorMessage } from '@/lib/api'
 import { formatCurrency, formatPlate } from '@/lib/format'
-import { formatDateTimeBR, toDateTimeLocalInput } from '@/lib/datetime'
+import { formatDateTimeBR, formatDuration, toDateTimeLocalInput } from '@/lib/datetime'
 import { describeVehicle } from '@/lib/describe'
 import { buildCarReadyWhatsAppLink } from '@/lib/whatsapp'
 import {
@@ -489,6 +489,9 @@ export function OrderDetailPage() {
                   ? `Agendada para ${formatDateTimeBR(order.scheduledAt)}`
                   : `Aberta em ${formatDateTimeBR(order.issuedAt)}`}
                 {order.finishedAt ? ` · Finalizada em ${formatDateTimeBR(order.finishedAt)}` : ''}
+                {order.status === 'done' && order.startedAt && order.finishedAt
+                  ? ` · Execução: ${formatDuration((new Date(order.finishedAt).getTime() - new Date(order.startedAt).getTime()) / 60000)}`
+                  : ''}
               </span>
               {isAdmin() && order.status !== 'scheduled' && (
                 <button

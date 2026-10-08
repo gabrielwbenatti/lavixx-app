@@ -13,6 +13,16 @@ const optionalPrice = z
   })
   .transform((v) => (v ? Number(v.replace(',', '.')) : null))
 
+/** Duração estimada em minutos: opcional, inteiro de 1 a 1440; em branco vira null. */
+const optionalDuration = z
+  .string()
+  .trim()
+  .optional()
+  .refine((v) => !v || (/^\d{1,4}$/.test(v) && Number(v) >= 1 && Number(v) <= 1440), {
+    message: 'Informe de 1 a 1440 minutos',
+  })
+  .transform((v) => (v ? Number(v) : null))
+
 /**
  * Serviço: nome obrigatório + preço padrão >= 0 (até 8 inteiros / 2 decimais) e, opcionalmente,
  * um preço de tabela para cada porte de veículo. Os preços são digitados como texto (aceita
@@ -35,6 +45,7 @@ export const serviceSchema = z.object({
   priceSmall: optionalPrice,
   priceMedium: optionalPrice,
   priceLarge: optionalPrice,
+  durationMinutes: optionalDuration,
 })
 
 /** Tipos de entrada (form: preços como string) e saída (submit: preços como number). */
