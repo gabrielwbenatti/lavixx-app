@@ -10,10 +10,19 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Anexa o token JWT (quando existir) em toda requisicao.
+/**
+ * Rotas publicas da API: nao levam token. Se levassem um token vencido guardado no navegador,
+ * a API recusaria o login com "token expirado" na 1a tentativa (e o 401 limparia a sessao).
+ */
+function isPublicRequest(url: string | undefined, method: string | undefined): boolean {
+  const path = (url ?? '').split('?')[0]
+  return path.startsWith('/auth/') || (path === '/tenants' && method?.toLowerCase() === 'post')
+}
+
+// Anexa o token JWT (quando existir) nas requisicoes que precisam de autenticacao.
 api.interceptors.request.use((config) => {
   const token = getToken()
-  if (token) {
+  if (token && !isPublicRequest(config.url, config.method)) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
